@@ -1,73 +1,103 @@
-# PoolCam PWA
+# PoolCam V2 — iPad-first smart pool console
 
-This is an installable website/PWA for an iPad. No Apple Developer account or App Store submission is required.
+This version is designed specifically for an older iPad Pro running as an installable PWA.
 
-## What it uses on the iPad
+## What changed
 
-- Rear camera
-- Microphone
-- CPU/RAM for live preview, recording, and motion analysis
-- Browser-managed local storage for video chunks and session data
-- Safari/PWA Home Screen mode
+- Completely redesigned iPad UI
+- Full-screen camera console
+- Score strip and current-player indicator
+- Manual 4-corner table calibration
+- Calibration overlay
+- Background Web Worker for vision calculations
+- Downscaled 256×144 analysis frames to reduce CPU/RAM use
+- Adjustable motion sensitivity
+- Motion burst → probable shot detection
+- Pocket-zone motion measurement around six calibrated pockets
+- Manual one-tap Pot / Miss / Scratch / Safety correction
+- Automatic turn switching for miss / scratch / safety
+- Running pots and per-player pot percentage
+- Highlights / moment timeline
+- 90-second local recording chunks
+- Browser storage meter
+- Save video chunks to Files
+- Session history in IndexedDB
+- JSON export
+- Email summary
+- Offline PWA caching
 
-## Important iPad limitation
+## Important limitation
 
-A website cannot claim unrestricted access to all 128 GB of iPad storage. iPadOS gives Safari/PWAs a storage quota and may reclaim browser data under storage pressure. For footage you truly want to keep, tap **Save to Files** for each chunk or later add a receiver/server upload option.
+This is still a browser application. The iPad gives Safari/PWAs browser-managed storage, not unrestricted raw access to the full 128 GB. Keep valuable chunks by tapping Save.
 
-The page must remain open/in the foreground for reliable long recordings.
+The processing engine intentionally uses classical lightweight vision rather than a large neural network:
+1. Downscale frame.
+2. Apply calibrated table polygon.
+3. Compare luminance against the previous frame.
+4. Measure total movement.
+5. Measure movement near calibrated pocket zones.
+6. Detect a movement burst followed by stillness as a probable shot.
+7. Keep rule/game/stat logic separate from the vision worker.
 
-## How to install on iPad without an Apple developer account
+This is appropriate for a 2016 A9X iPad.
 
-You need to host these files on an HTTPS website. Easy options include GitHub Pages, Netlify, Cloudflare Pages, or Vercel.
+## GitHub Pages update
 
-After hosting:
+Replace your old repo files with all files from this folder:
 
-1. Open the HTTPS address in Safari on the iPad.
-2. Tap **Share**.
-3. Tap **Add to Home Screen**.
-4. Open PoolCam from the Home Screen.
-5. Tap **Start Camera**.
-6. Allow Camera + Microphone access.
-7. Enter both player names.
-8. Tap **Start Game**.
-9. Leave PoolCam open while playing.
-10. Tap **End Game** when finished.
-11. Save video chunks you want to keep to the Files app.
-12. Export the JSON report or use Email Report.
+- index.html
+- styles.css
+- app.js
+- worker.js
+- sw.js
+- manifest.webmanifest
+- README.md
 
-## Why HTTPS is required
+Commit the changes.
 
-Safari requires a secure context for web camera access. A normal `http://192.168...` page on your home network generally won't be sufficient.
+GitHub Pages normally updates automatically. On the iPad, because the old service worker may cache the old app:
+1. Close PoolCam.
+2. Open the GitHub Pages site in Safari.
+3. Refresh once.
+4. If the old UI remains, go to Settings → Safari → Advanced → Website Data, find your github.io site, remove it, then reopen.
+5. Add to Home Screen again if necessary.
 
-## How recording works
+## First real setup
 
-The app asks the browser for 1080p/30fps camera video and audio. MediaRecorder writes a new chunk roughly every 2 minutes. Each chunk is stored in IndexedDB on the iPad.
+1. Start Camera.
+2. Position the iPad over the table.
+3. Tap Calibrate Table.
+4. Tap the four inside corners of the cloth:
+   top-left → top-right → bottom-right → bottom-left.
+5. Start Match.
+6. Play.
+7. Auto-detected shots appear in the timeline.
+8. Correct the shot using Pot / Miss / Scratch / Safety when useful.
+9. Tap Highlight immediately after a great moment.
+10. End Match.
+11. Save video chunks you care about.
 
-The app simultaneously downsamples frames to 320x180 about four times per second and looks for a burst of visual movement. A movement burst ending after relative stillness creates a "probable shot" timestamp.
+## What is processing automatically now
 
-This first version is deliberately lightweight enough for an older 9.7-inch iPad Pro.
+- table ROI masking
+- motion level
+- probable shot detection
+- pocket-zone activity
+- session clock
+- current-turn state
+- run tracking
+- pots / misses / scratches / safeties
+- per-player pot rate
+- simple live coaching insights
+- automatic candidate moments when strong motion occurs near a pocket
 
-## Files
+## Next technical layer
 
-- `index.html` — app interface
-- `app.js` — camera, recording, motion detection, local database, reports
-- `styles.css` — iPad-friendly UI
-- `manifest.webmanifest` — installable PWA metadata
-- `sw.js` — offline caching
+The next meaningful upgrade is individual ball detection and tracking. That can be added as a second low-frequency worker:
+- detect candidate ball circles / blobs only inside calibrated table
+- track cue-ball and object-ball positions
+- detect disappearance near a pocket
+- maintain a table-state map
+- infer ball-in-pocket events
 
-## Next upgrades
-
-The web version can later add:
-
-- table calibration
-- per-ball detection with TensorFlow.js / ONNX Web
-- automatic pocket detection
-- shot trajectory tracking
-- player turn tracking
-- Elo and head-to-head history
-- automatic highlight extraction
-- local-network upload to a computer/NAS
-- server-side email report
-- advanced AI analysis after each session
-
-For this 2016 iPad, heavy neural-network inference should be optional and run at a low frame rate rather than on every video frame.
+For this old iPad, ball tracking should run at approximately 2–4 analysis frames per second, not 30 fps.

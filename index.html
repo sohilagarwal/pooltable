@@ -1,100 +1,199 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#111111" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b0f0d">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
   <title>PoolCam</title>
 </head>
 <body>
-  <header>
-    <div>
-      <h1>🎱 PoolCam</h1>
-      <p class="muted">iPad pool recorder + shot tracker</p>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">🎱</div>
+        <div><b>PoolCam</b><small>Smart table console</small></div>
+      </div>
+      <div class="top-actions">
+        <span id="engineState" class="status idle">Idle</span>
+        <button id="settingsBtn" class="iconbtn">⚙︎</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero card">
+        <div class="video-wrap" id="videoWrap">
+          <video id="preview" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div id="cameraPlaceholder" class="camera-placeholder">
+            <div class="camIcon">⌁</div>
+            <h2>Ready to watch the table</h2>
+            <p>Start the rear camera, then calibrate the four table corners once.</p>
+          </div>
+
+          <div class="scorebar">
+            <div class="player active" id="p1ScoreBox">
+              <span id="p1NameTop">Player 1</span>
+              <strong id="p1Wins">0</strong>
+            </div>
+            <div class="gameMeta">
+              <b id="gameTypeTop">8-ball</b>
+              <small id="clock">00:00</small>
+            </div>
+            <div class="player" id="p2ScoreBox">
+              <span id="p2NameTop">Player 2</span>
+              <strong id="p2Wins">0</strong>
+            </div>
+          </div>
+
+          <div class="video-badges">
+            <span id="shotBadge">0 shots</span>
+            <span id="storageBadge">Storage —</span>
+          </div>
+        </div>
+
+        <div class="primary-controls">
+          <button id="startCameraBtn" class="btn primary">Start Camera</button>
+          <button id="calibrateBtn" class="btn" disabled>Calibrate Table</button>
+          <button id="startMatchBtn" class="btn accent" disabled>Start Match</button>
+          <button id="endMatchBtn" class="btn danger" disabled>End Match</button>
+        </div>
+      </section>
+
+      <section class="tabs">
+        <button class="tab active" data-tab="game">Game</button>
+        <button class="tab" data-tab="analysis">Analysis</button>
+        <button class="tab" data-tab="moments">Moments</button>
+        <button class="tab" data-tab="history">History</button>
+      </section>
+
+      <section id="gameTab" class="tabpage active">
+        <div class="grid two">
+          <div class="card">
+            <div class="sectionTitle"><h3>Match setup</h3><span class="hint">Set once</span></div>
+            <div class="formgrid">
+              <label>Player 1<input id="p1" value="Sohil"></label>
+              <label>Player 2<input id="p2" value="Friend"></label>
+              <label>Game
+                <select id="gameType">
+                  <option>8-ball</option><option>9-ball</option><option>10-ball</option><option>Practice</option>
+                </select>
+              </label>
+              <label>Race to
+                <select id="raceTo"><option>1</option><option>3</option><option selected>5</option><option>7</option><option>9</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="sectionTitle"><h3>Current turn</h3><span id="turnStatus" class="hint">Not started</span></div>
+            <div class="turnCard">
+              <button id="switchTurnBtn" class="turnPlayer">Player 1</button>
+              <div class="miniStats">
+                <div><b id="turnRun">0</b><span>run</span></div>
+                <div><b id="turnPots">0</b><span>pots</span></div>
+                <div><b id="turnMisses">0</b><span>misses</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card quick-card">
+          <div class="sectionTitle"><h3>Shot result</h3><span class="hint">One tap after each shot if auto-detection is wrong</span></div>
+          <div class="shotButtons">
+            <button data-result="pot" class="shotbtn pot">✓ Pot</button>
+            <button data-result="miss" class="shotbtn miss">× Miss</button>
+            <button data-result="scratch" class="shotbtn scratch">↺ Scratch</button>
+            <button data-result="safety" class="shotbtn safety">◇ Safety</button>
+            <button id="highlightBtn" class="shotbtn highlight">★ Highlight</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sectionTitle"><h3>Live timeline</h3><button id="undoBtn" class="linkbtn">Undo last</button></div>
+          <div id="timeline" class="timeline emptyState">No shots yet.</div>
+        </div>
+      </section>
+
+      <section id="analysisTab" class="tabpage">
+        <div class="metrics" id="metrics"></div>
+        <div class="grid two">
+          <div class="card">
+            <div class="sectionTitle"><h3>Processing engine</h3><span class="hint">On-device</span></div>
+            <div class="engineList">
+              <div><span>Table crop</span><b id="engTable">Waiting</b></div>
+              <div><span>Motion / shot detector</span><b id="engMotion">Waiting</b></div>
+              <div><span>Pocket-zone activity</span><b id="engPocket">Waiting</b></div>
+              <div><span>Turn + run engine</span><b id="engTurn">Ready</b></div>
+              <div><span>Recording chunks</span><b id="engVideo">Ready</b></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sectionTitle"><h3>Session insights</h3><span class="hint">Live</span></div>
+            <div id="insights" class="insights emptyState">Play a few shots to generate analysis.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="momentsTab" class="tabpage">
+        <div class="card">
+          <div class="sectionTitle"><h3>Best moments</h3><span class="hint">Auto + manual</span></div>
+          <div id="moments" class="moments emptyState">Highlights will appear here.</div>
+        </div>
+        <div class="card">
+          <div class="sectionTitle"><h3>Video chunks</h3><span class="hint">Stored locally</span></div>
+          <div id="recordings" class="recordings emptyState">No saved chunks yet.</div>
+        </div>
+      </section>
+
+      <section id="historyTab" class="tabpage">
+        <div class="card">
+          <div class="sectionTitle"><h3>Recent sessions</h3><span class="hint">This iPad</span></div>
+          <div id="history" class="history emptyState">No sessions yet.</div>
+        </div>
+        <div class="card">
+          <div class="sectionTitle"><h3>Export</h3></div>
+          <div class="primary-controls">
+            <button id="exportBtn" class="btn">Export report</button>
+            <button id="emailBtn" class="btn">Email summary</button>
+            <button id="clearBtn" class="btn danger-outline">Clear local data</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="calibrationSheet" class="sheet hidden">
+      <div class="sheetCard">
+        <h2>Calibrate table</h2>
+        <p>Tap the four inside corners of the playing surface in this order:</p>
+        <div class="cornerOrder">① Top-left → ② Top-right → ③ Bottom-right → ④ Bottom-left</div>
+        <p id="calStep"><b>Tap corner 1 of 4</b></p>
+        <div class="sheetActions">
+          <button id="cancelCalBtn" class="btn">Cancel</button>
+          <button id="resetCalBtn" class="btn">Reset</button>
+        </div>
+      </div>
     </div>
-    <span id="statusPill" class="pill">Idle</span>
-  </header>
 
-  <main>
-    <section class="card">
-      <h2>1. Game setup</h2>
-      <div class="grid two">
-        <label>Player 1<input id="p1" placeholder="Sohil" /></label>
-        <label>Player 2<input id="p2" placeholder="Rahul" /></label>
-        <label>Game
-          <select id="gameType">
-            <option>8-ball</option>
-            <option>9-ball</option>
-            <option>10-ball</option>
-            <option>Practice</option>
-          </select>
+    <div id="settingsSheet" class="sheet hidden">
+      <div class="sheetCard">
+        <h2>Settings</h2>
+        <label>Report email<input id="reportEmail" type="email" placeholder="you@example.com"></label>
+        <label>Detection sensitivity
+          <input id="sensitivity" type="range" min="1" max="10" value="5">
         </label>
-        <label>Report email<input id="reportEmail" type="email" placeholder="you@example.com" /></label>
+        <label>Video quality
+          <select id="quality"><option value="2500000">Balanced</option><option value="1500000">Storage saver</option><option value="3500000">High</option></select>
+        </label>
+        <div class="sheetActions"><button id="closeSettingsBtn" class="btn primary">Done</button></div>
       </div>
-    </section>
+    </div>
 
-    <section class="card">
-      <h2>2. Camera</h2>
-      <video id="preview" autoplay playsinline muted></video>
-      <canvas id="analysisCanvas" width="320" height="180" hidden></canvas>
-      <div class="buttonRow">
-        <button id="cameraBtn" class="primary">Start Camera</button>
-        <button id="sessionBtn" disabled>Start Game</button>
-        <button id="stopBtn" class="danger" disabled>End Game</button>
-      </div>
-      <div class="stats">
-        <div><b id="timer">00:00:00</b><span>session</span></div>
-        <div><b id="shotCount">0</b><span>shots detected</span></div>
-        <div><b id="chunkCount">0</b><span>video chunks</span></div>
-        <div><b id="storageText">—</b><span>browser storage</span></div>
-      </div>
-      <p class="muted small">
-        Keep this web app open and the iPad plugged in while recording.
-      </p>
-    </section>
-
-    <section class="card" id="liveCard">
-      <h2>3. Live controls</h2>
-      <div class="buttonRow">
-        <button id="highlightBtn" disabled>⭐ Mark Highlight</button>
-        <button id="potBtn" disabled>Pot</button>
-        <button id="missBtn" disabled>Miss</button>
-        <button id="scratchBtn" disabled>Scratch</button>
-      </div>
-      <label>Current player
-        <select id="currentPlayer"></select>
-      </label>
-      <p class="muted small">Motion detection automatically creates probable shot timestamps. Use these buttons to quickly correct/tag events.</p>
-    </section>
-
-    <section class="card">
-      <h2>4. Events</h2>
-      <div id="events"></div>
-    </section>
-
-    <section class="card">
-      <h2>5. Saved video</h2>
-      <div id="recordings"></div>
-      <p class="muted small">
-        Recordings are kept in this browser's local storage. iPadOS controls the actual storage quota.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>6. Session report</h2>
-      <div class="buttonRow">
-        <button id="jsonBtn" disabled>Export JSON</button>
-        <button id="emailBtn" disabled>Email Report</button>
-        <button id="clearBtn">Clear Saved Data</button>
-      </div>
-      <pre id="summary"></pre>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
+    <canvas id="analysisCanvas" width="256" height="144" hidden></canvas>
+  </div>
+  <script src="./app.js"></script>
 </body>
 </html>
