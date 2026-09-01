@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#111111" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>PoolCam</title>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🎱 PoolCam</h1>
+      <p class="muted">iPad pool recorder + shot tracker</p>
+    </div>
+    <span id="statusPill" class="pill">Idle</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. Game setup</h2>
+      <div class="grid two">
+        <label>Player 1<input id="p1" placeholder="Sohil" /></label>
+        <label>Player 2<input id="p2" placeholder="Rahul" /></label>
+        <label>Game
+          <select id="gameType">
+            <option>8-ball</option>
+            <option>9-ball</option>
+            <option>10-ball</option>
+            <option>Practice</option>
+          </select>
+        </label>
+        <label>Report email<input id="reportEmail" type="email" placeholder="you@example.com" /></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Camera</h2>
+      <video id="preview" autoplay playsinline muted></video>
+      <canvas id="analysisCanvas" width="320" height="180" hidden></canvas>
+      <div class="buttonRow">
+        <button id="cameraBtn" class="primary">Start Camera</button>
+        <button id="sessionBtn" disabled>Start Game</button>
+        <button id="stopBtn" class="danger" disabled>End Game</button>
+      </div>
+      <div class="stats">
+        <div><b id="timer">00:00:00</b><span>session</span></div>
+        <div><b id="shotCount">0</b><span>shots detected</span></div>
+        <div><b id="chunkCount">0</b><span>video chunks</span></div>
+        <div><b id="storageText">—</b><span>browser storage</span></div>
+      </div>
+      <p class="muted small">
+        Keep this web app open and the iPad plugged in while recording.
+      </p>
+    </section>
+
+    <section class="card" id="liveCard">
+      <h2>3. Live controls</h2>
+      <div class="buttonRow">
+        <button id="highlightBtn" disabled>⭐ Mark Highlight</button>
+        <button id="potBtn" disabled>Pot</button>
+        <button id="missBtn" disabled>Miss</button>
+        <button id="scratchBtn" disabled>Scratch</button>
+      </div>
+      <label>Current player
+        <select id="currentPlayer"></select>
+      </label>
+      <p class="muted small">Motion detection automatically creates probable shot timestamps. Use these buttons to quickly correct/tag events.</p>
+    </section>
+
+    <section class="card">
+      <h2>4. Events</h2>
+      <div id="events"></div>
+    </section>
+
+    <section class="card">
+      <h2>5. Saved video</h2>
+      <div id="recordings"></div>
+      <p class="muted small">
+        Recordings are kept in this browser's local storage. iPadOS controls the actual storage quota.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>6. Session report</h2>
+      <div class="buttonRow">
+        <button id="jsonBtn" disabled>Export JSON</button>
+        <button id="emailBtn" disabled>Email Report</button>
+        <button id="clearBtn">Clear Saved Data</button>
+      </div>
+      <pre id="summary"></pre>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
