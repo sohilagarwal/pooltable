@@ -1,74 +1,18 @@
-let last=null, motion=false, peak=0, pocketPeak=0, stable=0, sensitivity=5, tableMask=null, pocketZones=[];
-
-function resetDetector(){
-  last=null; motion=false; peak=0; pocketPeak=0; stable=0;
+let cfg={sensitivity:5,table:null,pockets:[]};
+let lastGray=null,moving=false,stableFrames=0,peakMotion=0,peakPocket=0,beforeState=null,lastStableState=null;
+function insidePoly(x,y,poly){if(!poly)return true;let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if(((a.y>y)!=(b.y>y))&&(x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x))c=!c}return c}
+function feltEstimate(rgba,w,h){const hist=new Map();for(let y=2;y<h-2;y+=2)for(let x=2;x<w-2;x+=2){if(cfg.table&&!insidePoly(x/w,y/h,cfg.table))continue;const i=(y*w+x)*4,r=rgba[i],g=rgba[i+1],b=rgba[i+2],lum=(r+g+b)/3;if(lum<30||lum>225)continue;const k=((r>>4)<<8)|((g>>4)<<4)|(b>>4);hist.set(k,(hist.get(k)||0)+1)}let best=0,bkey=0;for(const[k,v]of hist)if(v>best){best=v;bkey=k}return{r:((bkey>>8)&15)*16+8,g:((bkey>>4)&15)*16+8,b:(bkey&15)*16+8}}
+function detectBalls(rgba,w,h){
+  const felt=feltEstimate(rgba,w,h),bin=new Uint8Array(w*h),threshold=54;
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(cfg.table&&!insidePoly(x/w,y/h,cfg.table))continue;const i=(y*w+x)*4,r=rgba[i],g=rgba[i+1],b=rgba[i+2],dr=r-felt.r,dg=g-felt.g,db=b-felt.b,d=Math.sqrt(dr*dr+dg*dg+db*db),lum=.299*r+.587*g+.114*b;if(d>threshold&&lum>32)bin[y*w+x]=1}
+  const clean=new Uint8Array(w*h);for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){let n=0;for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)n+=bin[(y+yy)*w+x+xx];if(n>=4)clean[y*w+x]=1}
+  const seen=new Uint8Array(w*h),comps=[],qx=new Int16Array(w*h),qy=new Int16Array(w*h);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const idx=y*w+x;if(!clean[idx]||seen[idx])continue;let qs=0,qe=0;qx[qe]=x;qy[qe++]=y;seen[idx]=1;let area=0,minx=x,maxx=x,miny=y,maxy=y,sumx=0,sumy=0,sumLum=0,sumSat=0;
+    while(qs<qe){const cx=qx[qs],cy=qy[qs++],ci=cy*w+cx;area++;sumx+=cx;sumy+=cy;minx=Math.min(minx,cx);maxx=Math.max(maxx,cx);miny=Math.min(miny,cy);maxy=Math.max(maxy,cy);const ri=ci*4,r=rgba[ri],g=rgba[ri+1],b=rgba[ri+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);sumLum+=.299*r+.587*g+.114*b;sumSat+=mx?((mx-mn)/mx):0;for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++){if(!xx&&!yy)continue;const nx=cx+xx,ny=cy+yy;if(nx<1||ny<1||nx>=w-1||ny>=h-1)continue;const ni=ny*w+nx;if(clean[ni]&&!seen[ni]){seen[ni]=1;qx[qe]=nx;qy[qe++]=ny}}}
+    const bw=maxx-minx+1,bh=maxy-miny+1,aspect=Math.max(bw/bh,bh/bw),fill=area/(bw*bh);if(area>=3&&area<=75&&aspect<=2.4&&fill>=.28){const lum=sumLum/area,sat=sumSat/area;comps.push({x:(sumx/area)/w,y:(sumy/area)/h,area,lum,sat,cue:lum>175&&sat<.34})}}
+  comps.sort((a,b)=>b.area-a.area);const balls=comps.slice(0,20),cue=balls.find(b=>b.cue)||null;return{count:balls.length,cue:!!cue,cuePos:cue?{x:cue.x,y:cue.y}:null,balls:balls.map(b=>({x:b.x,y:b.y,area:b.area,cue:b.cue})),felt};
 }
-
-function insidePoly(x,y,poly){
-  let c=false;
-  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-    const a=poly[i],b=poly[j];
-    if(((a.y>y)!=(b.y>y)) && (x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x)) c=!c;
-  }
-  return c;
-}
-
-onmessage=e=>{
-  const m=e.data;
-  if(m.type==="config"){
-    sensitivity=Number(m.sensitivity)||5;
-    tableMask=m.table||null;
-    pocketZones=m.pockets||[];
-    resetDetector();
-    return;
-  }
-  if(m.type==="reset"){
-    resetDetector();
-    return;
-  }
-  if(m.type!=="frame") return;
-
-  const {gray,w,h,t}=m;
-  const threshold=14+(10-sensitivity)*1.4;
-  const ratioThreshold=0.012+(10-sensitivity)*0.0023;
-  if(!last){last=gray;return;}
-
-  let changed=0,total=0,pocketHits=0;
-  for(let y=0;y<h;y++){
-    for(let x=0;x<w;x++){
-      const nx=x/w, ny=y/h;
-      if(tableMask && !insidePoly(nx,ny,tableMask)) continue;
-      const i=y*w+x; total++;
-      const d=Math.abs(gray[i]-last[i]);
-      if(d>threshold){
-        changed++;
-        for(const p of pocketZones){
-          const dx=nx-p.x,dy=ny-p.y;
-          if(dx*dx+dy*dy < p.r*p.r){pocketHits++;break;}
-        }
-      }
-    }
-  }
-
-  const ratio=total?changed/total:0;
-  const pocketRatio=total?pocketHits/total:0;
-  let shot=false, shotPeak=0, shotPocketPeak=0;
-
-  if(ratio>ratioThreshold){
-    motion=true;
-    peak=Math.max(peak,ratio);
-    pocketPeak=Math.max(pocketPeak,pocketRatio);
-    stable=0;
-  }else if(motion){
-    stable++;
-    if(stable>=2){
-      shot=true;
-      shotPeak=peak;
-      shotPocketPeak=pocketPeak;
-      motion=false; stable=0; peak=0; pocketPeak=0;
-    }
-  }
-
-  postMessage({type:"metrics",ratio,pocketRatio,shot,peak:shot?shotPeak:peak,pocketPeak:shot?shotPocketPeak:pocketPeak,t});
-  last=gray;
-};
+function frameMotion(gray,w,h){if(!lastGray){lastGray=gray;return{ratio:0,pocket:0}}const diffThreshold=14+(10-cfg.sensitivity)*1.8;let changed=0,total=0,pocketChanged=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(cfg.table&&!insidePoly(x/w,y/h,cfg.table))continue;const i=y*w+x,d=Math.abs(gray[i]-lastGray[i]);total++;if(d>diffThreshold){changed++;for(const p of cfg.pockets){const dx=x/w-p.x,dy=y/h-p.y;if(dx*dx+dy*dy<p.r*p.r){pocketChanged++;break}}}}lastGray=gray;return{ratio:total?changed/total:0,pocket:total?pocketChanged/total:0}}
+function reset(){lastGray=null;moving=false;stableFrames=0;peakMotion=0;peakPocket=0;beforeState=null;lastStableState=null}
+onmessage=e=>{const m=e.data;if(m.type==="config"){cfg={...cfg,...m};reset();return}if(m.type==="reset"){reset();return}if(m.type!=="frame")return;const{rgba,gray,w,h,t}=m,mot=frameMotion(gray,w,h),moveThreshold=.010+(10-cfg.sensitivity)*.0024,isMoving=mot.ratio>moveThreshold;
+  if(isMoving){if(!moving){beforeState=lastStableState;peakMotion=0;peakPocket=0}moving=true;stableFrames=0;peakMotion=Math.max(peakMotion,mot.ratio);peakPocket=Math.max(peakPocket,mot.pocket)}else{const state=detectBalls(rgba,w,h);lastStableState=state;if(moving){stableFrames++;if(stableFrames>=4){moving=false;stableFrames=0;const afterState=state,before=beforeState||afterState,delta=Math.max(0,(before?.count||0)-(afterState?.count||0)),cueGone=!!before?.cue&&!afterState?.cue,objectDelta=Math.max(0,delta-(cueGone?1:0));let confidence=.45+Math.min(.28,peakMotion*4)+Math.min(.18,peakPocket*30);if(delta>0)confidence+=.08;if(cueGone)confidence+=.08;confidence=Math.max(0,Math.min(.99,confidence));postMessage({type:"shotComplete",t,before,after:afterState,delta,objectDelta,cueGone,peakMotion,peakPocket,confidence});beforeState=afterState;peakMotion=0;peakPocket=0}}postMessage({type:"stableState",t,state,motion:mot.ratio,pocket:mot.pocket})}postMessage({type:"motion",t,moving,ratio:mot.ratio,pocket:mot.pocket})};

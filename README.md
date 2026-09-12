@@ -1,50 +1,147 @@
-# PoolCam v2.3 Audited
+# PoolCam v3.0 Core
 
-A lightweight, local-first iPad PWA for recording pool games and doing basic on-device vision analysis without an Apple Developer account.
+GitHub-ready installable PWA for a home pool table and an older iPad Pro.
 
-## What this build does now
+## Core gameplay loop
 
-- Rear-camera preview with microphone fallback to video-only
-- Four-corner table calibration that correctly maps taps to the actual camera image even when Safari letterboxes it
-- Calibration saved locally on the iPad
-- Lightweight vision in a Web Worker at 256×144, about 3 frames/second
-- Motion-burst → probable-shot detection
-- Six pocket activity zones, including correctly choosing the two long-rail middle pockets
-- Pocket activity peak preserved across the whole shot instead of sampling only after motion stops
-- Auto-detected shots are created once and can then be classified Pot / Miss / Scratch / Safety without double-counting
-- Manual turn changes
-- Manual rack wins and race-to score
-- Runs, pots, misses, scratches, safeties, shot count, classified-shot count, tagged pot rate
-- Manual highlights plus automatic highlight candidates when strong shot motion overlaps pocket activity
-- 90-second independently rotated recording files rather than assuming MediaRecorder timeslices are standalone videos
-- Local IndexedDB session/video storage
-- Save video chunks to Files
-- Session history, JSON export, mailto report
-- Network-first service worker so GitHub Pages updates are less likely to be stuck behind an old cache
+The software is built around this state machine:
 
-## Performance design for the 9.7-inch iPad Pro
+1. Table is still -> capture approximate ball state.
+2. Motion begins -> shot starts.
+3. Balls move -> monitor table and six pocket zones.
+4. Table becomes still again -> capture new ball state.
+5. Compare before vs after.
+6. Infer pot / miss / likely scratch and attach confidence.
+7. High confidence -> apply automatically.
+8. Low confidence -> ask for one-tap confirmation.
+9. Rules engine decides who plays next.
+10. Save event to timeline and statistics.
 
-The camera records at normal quality, while analysis uses small grayscale frames. Vision runs in a Web Worker so the interface stays responsive. Heavy per-ball neural-network inference is intentionally not included in this version.
+Turn logic:
+- legal pot -> same player continues
+- no pot -> other player
+- scratch/foul -> other player + ball in hand
+- declared safety -> other player
 
-## What is NOT automatic yet
+## Included
 
-This build does not yet know ball numbers, solids vs stripes, exact cue-ball trajectory, legal/illegal 8-ball shots, automatic rack winner, or player identity from faces. Pot detection is currently a pocket-activity clue, not proof that a ball dropped.
+- Rear-camera recording
+- 90-second safe local recording segments belonging to one session
+- Four-corner table calibration
+- Video letterbox-aware calibration coordinates
+- Six pocket-zone generation
+- 256x144 lightweight analysis frames
+- Web Worker vision processing
+- Shot start/end detection from motion
+- Approximate ball candidate detection based on felt-color difference
+- Approximate cue-ball candidate detection
+- Before/after ball count comparison
+- Pocket-area motion measurement
+- Pot / miss / scratch inference with confidence
+- Confidence threshold setting
+- Low-confidence shot review
+- Automatic player turn tracking
+- Break-shot state
+- Ball-in-hand state
+- Open-table state
+- Solids / stripes state with manual assignment
+- WPA-style foul categories
+- House-rule switches for selected common variants
+- Safety declaration
+- 8-ball result handling
+- Rack score and race-to score
+- Manual switch player
+- Undo
+- Highlight timestamps
+- Timeline
+- Basic stats and insights
+- IndexedDB session history
+- Video save links
+- JSON session export
+- Email summary
+- PWA/offline shell via service worker
 
-Those features require a separate ball-detection/tracking layer calibrated to the actual mounted camera, table color, lighting, and ball set.
+## Important limits of this build
 
-## First setup
+This is the first version that attempts the actual game loop, but it does not pretend one overhead iPad can reliably see every pool-rule detail yet.
 
-1. Upload every file in this folder to the GitHub Pages repository root.
-2. Wait for GitHub Pages to deploy.
-3. Open the page in Safari on the iPad.
-4. Confirm the header says `v2.3 audited`.
-5. Start Camera.
-6. Mount the iPad in its final position and orientation.
-7. Tap Calibrate Table.
-8. Tap the inside playing-surface corners: top-left → top-right → bottom-right → bottom-left.
-9. Start Match.
-10. Leave the PWA open in the foreground while playing.
+Automatic vision currently attempts:
+- shot occurred
+- table stopped
+- approximate object-ball disappearance
+- likely pot/no-pot
+- likely cue-ball disappearance / scratch
+- activity near a pocket
 
-## Important browser limitation
+Still manual or semi-manual:
+- exact numbered ball
+- solids vs stripes recognition
+- first ball contacted
+- rail-after-contact proof
+- called ball / called pocket
+- double hit
+- push shot
+- clothing/hand touching a ball
+- foot-on-floor foul
+- subtle ball-off-table situations
 
-Safari/PWAs do not get unrestricted access to the iPad's entire 128 GB. Storage is browser-managed and background recording is not reliable. Save important clips to Files.
+For those cases, use the large correction/foul controls. The rules engine applies the consequence after you identify the event.
+
+## Upload to GitHub
+
+Repository root should contain exactly these files:
+
+- index.html
+- styles.css
+- rules.js
+- app.js
+- worker.js
+- sw.js
+- manifest.webmanifest
+- README.md
+
+If GitHub Pages is already configured for your repository from `main` and `/ (root)`, upload/replace these files and commit.
+
+On the iPad, confirm the header says:
+
+`Home Pool Analyzer · v3.0 core`
+
+If you still see an older version, clear the github.io site data in Safari and reopen the site.
+
+## First real-table test
+
+Test only the core loop first:
+
+1. Start Camera.
+2. Calibrate the four inside cloth corners.
+3. Enter Player 1 / Player 2 and breaker.
+4. Start Game.
+5. Break with no ball going in.
+6. Wait for all balls to stop.
+7. Check whether the turn changes to Player 2.
+8. Have Player 2 pot one ball.
+9. Check whether Player 2 remains current.
+10. Have Player 2 miss.
+11. Check whether turn changes to Player 1.
+12. Scratch the cue ball.
+13. Check whether the opponent becomes current and BALL IN HAND appears.
+14. End Game.
+15. Review Timeline, Analysis and Saved Video.
+
+## Internal validation performed
+
+- app.js syntax checked
+- rules.js syntax checked
+- worker.js syntax checked
+- sw.js syntax checked
+- every `$()` UI id referenced by app.js was verified to exist in index.html
+- local assets referenced by index.html were verified present
+- rules acceptance sequence tested:
+  - break + no pot -> switch player
+  - pot -> same player
+  - miss -> switch player
+  - scratch -> switch player + ball in hand
+  - safety -> switch player
+  - generic foul -> switch player + ball in hand
+
+The remaining validation must happen against the real iPad/table/camera/lighting because vision thresholds cannot be proven in a desktop code audit.

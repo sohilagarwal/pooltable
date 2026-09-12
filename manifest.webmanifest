@@ -1,10 +1,10 @@
 {
-  "name":"PoolCam Smart Table",
+  "name":"PoolCam Home Pool Analyzer",
   "short_name":"PoolCam",
   "start_url":"./",
   "scope":"./",
   "display":"standalone",
-  "background_color":"#0b0f0d",
-  "theme_color":"#0b0f0d",
-  "description":"Local-first pool recording and analysis console."
+  "background_color":"#07110c",
+  "theme_color":"#07110c",
+  "description":"Local-first pool recording, shot detection, turn tracking, rules, statistics and game history."
 }
