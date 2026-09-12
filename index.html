@@ -1,20 +1,193 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#07110c"><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css"><title>PoolCam Home</title></head><body><div id="app">
-<header class="topbar"><div class="brand"><div class="ball8">8</div><div><strong>PoolCam</strong><small>Home Pool Analyzer · v3.0 core</small></div></div><div class="header-right"><span id="engineBadge" class="badge idle">Idle</span><button id="settingsBtn" class="iconbtn">⚙︎</button></div></header>
-<main>
-<section class="camera-card"><div id="videoStage" class="video-stage"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div id="cameraEmpty" class="camera-empty"><div class="camera-mark">◎</div><h1>Your table becomes the scoreboard.</h1><p>Record, detect shots, infer pots/scratches, follow turns, and save the game.</p></div><div class="top-score"><div id="p1Score" class="player-score active"><span id="p1Top">Player 1</span><b id="p1RackScore">0</b></div><div class="match-center"><span id="rulesLabel">WPA 8-ball</span><b id="gameClock">00:00</b></div><div id="p2Score" class="player-score"><span id="p2Top">Player 2</span><b id="p2RackScore">0</b></div></div><div class="bottom-hud"><span id="tableStateBadge">Table: —</span><span id="ballCountBadge">Balls: —</span><span id="storageBadge">Storage: —</span></div></div><div class="control-row"><button id="cameraBtn" class="btn primary">Start Camera</button><button id="calibrateBtn" class="btn" disabled>Calibrate Table</button><button id="startBtn" class="btn blue" disabled>Start Game</button><button id="endBtn" class="btn red" disabled>End Game</button></div></section>
-<section class="turn-banner"><div><small>CURRENT TURN</small><strong id="currentPlayerBig">—</strong><span id="turnDetail">Start a game</span></div><button id="switchPlayerBtn" class="switch-btn" disabled>Switch player</button></section>
-<section id="pendingReview" class="review hidden"><div><small>SHOT NEEDS REVIEW</small><strong id="reviewText">Was that a pot?</strong><span id="reviewMeta"></span></div><div class="review-actions"><button data-review="pot" class="mini pot">Pot</button><button data-review="miss" class="mini">Miss</button><button data-review="scratch" class="mini scratch">Scratch</button><button data-review="foul" class="mini foul">Foul</button></div></section>
-<nav class="tabs"><button class="tab active" data-page="game">Game</button><button class="tab" data-page="timeline">Timeline</button><button class="tab" data-page="analysis">Analysis</button><button class="tab" data-page="history">History</button></nav>
-<section id="gamePage" class="page active"><div class="grid two"><article class="card"><div class="section-head"><h2>Match setup</h2><span>Before play</span></div><div class="form-grid"><label>Player 1<input id="p1" value="Sohil"></label><label>Player 2<input id="p2" value="Friend"></label><label>Breaker<select id="breaker"><option value="0">Player 1</option><option value="1">Player 2</option></select></label><label>Race to<select id="raceTo"><option>1</option><option>3</option><option selected>5</option><option>7</option><option>9</option></select></label><label>Rules<select id="ruleset"><option value="wpa">WPA 8-ball</option><option value="house">House rules</option></select></label><label>Game<select id="gameType"><option selected>8-ball</option></select></label></div></article>
-<article class="card"><div class="section-head"><h2>Game state</h2><span id="stateConfidence">Vision waiting</span></div><div class="state-grid"><div><b id="openTableState">OPEN</b><span>table</span></div><div><b id="p1Group">—</b><span id="p1Remaining">P1 group</span></div><div><b id="p2Group">—</b><span id="p2Remaining">P2 group</span></div><div><b id="ballInHandState">NO</b><span>ball in hand</span></div></div><div class="group-actions"><button id="assignP1Solid" class="softbtn">P1 = Solids</button><button id="assignP1Stripe" class="softbtn">P1 = Stripes</button><button id="clearGroups" class="softbtn">Reset groups</button></div></article></div>
-<article class="card"><div class="section-head"><h2>Quick result</h2><span>Use when auto-detection is wrong or uncertain</span></div><div class="quick-actions"><button data-result="pot" class="action pot">✓ Pot</button><button data-result="miss" class="action miss">× Miss</button><button data-result="scratch" class="action scratch">↺ Scratch</button><button id="safetyBtn" class="action safety">◇ Declare Safety</button><button id="foulBtn" class="action foul">! Foul</button><button id="eightBtn" class="action eight">8 8-Ball</button><button id="highlightBtn" class="action highlight">★ Highlight</button><button id="undoBtn" class="action undo">↶ Undo</button></div></article>
-<article class="card"><div class="section-head"><h2>Rack control</h2><span>Use when the rack ends</span></div><div class="rack-actions"><button id="p1RackWin" class="btn">+ Rack for Player 1</button><button id="p2RackWin" class="btn">+ Rack for Player 2</button><button id="newRackBtn" class="btn">New rack</button></div></article></section>
-<section id="timelinePage" class="page"><article class="card"><div class="section-head"><h2>Game timeline</h2><span id="shotCountLabel">0 shots</span></div><div id="timeline" class="empty">No events yet.</div></article></section>
-<section id="analysisPage" class="page"><div id="metrics" class="metrics"></div><div class="grid two"><article class="card"><div class="section-head"><h2>Vision engine</h2><span>On this iPad</span></div><div class="engine-list"><div><span>Table calibration</span><b id="engCal">Waiting</b></div><div><span>Motion state</span><b id="engMotion">Waiting</b></div><div><span>Ball candidates</span><b id="engBalls">Waiting</b></div><div><span>Cue-ball candidate</span><b id="engCue">Waiting</b></div><div><span>Pocket activity</span><b id="engPocket">Waiting</b></div><div><span>Shot confidence</span><b id="engConfidence">—</b></div></div></article><article class="card"><div class="section-head"><h2>Game insights</h2><span>Basic analysis</span></div><div id="insights" class="empty">Play a few shots first.</div></article></div><article class="card"><div class="section-head"><h2>Saved video</h2><span>One game, safe segments</span></div><div id="recordings" class="empty">No video saved yet.</div></article></section>
-<section id="historyPage" class="page"><article class="card"><div class="section-head"><h2>Previous games</h2><span>Stored on this iPad</span></div><div id="history" class="empty">No previous games.</div></article><article class="card"><div class="section-head"><h2>Export</h2><span>Keep what matters</span></div><div class="control-row"><button id="exportBtn" class="btn">Export session JSON</button><button id="emailBtn" class="btn">Email summary</button><button id="clearDataBtn" class="btn red-outline">Clear local data</button></div></article></section>
-</main>
-<div id="calibrationGuide" class="cal-guide hidden"><strong id="calText">Tap top-left corner</strong><span>Tap the inside corners of the playing surface directly on the video.</span><button id="cancelCalBtn">Cancel</button></div>
-<div id="foulSheet" class="sheet hidden"><div class="sheet-card"><div class="section-head"><h2>Select foul</h2><button id="closeFoulBtn" class="xbtn">×</button></div><div class="foul-grid"><button data-foul="scratch">Cue-ball scratch</button><button data-foul="wrong-ball-first">Wrong ball first</button><button data-foul="no-rail">No rail after contact</button><button data-foul="ball-off-table">Ball off table</button><button data-foul="touched-ball">Touched/moved ball</button><button data-foul="double-hit">Double hit</button><button data-foul="push-shot">Push shot</button><button data-foul="balls-moving">Shot while balls moving</button><button data-foul="illegal-placement">Illegal cue-ball placement</button><button data-foul="out-of-turn">Playing out of turn</button><button data-foul="illegal-break">Illegal break</button><button data-foul="other">Other foul</button></div></div></div>
-<div id="eightSheet" class="sheet hidden"><div class="sheet-card"><div class="section-head"><h2>8-ball result</h2><button id="closeEightBtn" class="xbtn">×</button></div><p class="sheet-copy">Choose what happened. The rules engine will determine the rack result.</p><div class="foul-grid"><button data-eight="legal">Legal 8-ball</button><button data-eight="early">8-ball early</button><button data-eight="wrong-pocket">Wrong / uncalled pocket</button><button data-eight="foul">8-ball + foul</button><button data-eight="off-table">8-ball off table</button><button data-eight="break">8-ball on break</button></div></div></div>
-<div id="settingsSheet" class="sheet hidden"><div class="sheet-card"><div class="section-head"><h2>Settings</h2><button id="closeSettingsBtn" class="xbtn">×</button></div><label>Report email<input id="reportEmail" type="email" placeholder="you@example.com"></label><label>Vision sensitivity<input id="sensitivity" type="range" min="1" max="10" value="5"></label><label>Auto-apply confidence<select id="autoConfidence"><option value="0.70">70%</option><option value="0.78" selected>78%</option><option value="0.85">85%</option><option value="0.90">90%</option></select></label><label>Video quality<select id="videoQuality"><option value="1400000">Storage saver</option><option value="2400000" selected>Balanced</option><option value="3400000">High</option></select></label><div id="houseSettings" class="house-box hidden"><label class="check"><input id="houseEightBreakWin" type="checkbox"> 8-ball on break = win</label><label class="check"><input id="houseScratchKitchen" type="checkbox"> Scratch = behind head string</label></div></div></div>
-<canvas id="analysisCanvas" width="256" height="144" hidden></canvas><script src="./rules.js"></script><script src="./app.js"></script></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#08120d">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <title>PoolCam</title>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><div class="eight">8</div><div><strong>PoolCam</strong><small>Automatic Home Pool Analyzer · v4.2 audited</small></div></div>
+    <div class="topright"><span id="opencvStatus" class="chip warn">Vision loading…</span><span id="appStatus" class="chip">Idle</span></div>
+  </header>
+
+  <main>
+    <section class="camera card flush">
+      <div id="videoStage" class="video-stage">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div id="emptyCamera" class="empty-camera"><div class="camera-icon">◎</div><h1>Point the iPad at the whole table.</h1><p>PoolCam will record the game, detect shots, count visible balls, infer pots/scratches, and manage turns.</p></div>
+        <div class="scorehud">
+          <div id="hudP1" class="hud-player active"><span id="hudP1Name">Player 1</span><b id="hudP1Score">0</b></div>
+          <div class="hud-center"><span id="hudMode">8-ball</span><b id="clock">00:00</b></div>
+          <div id="hudP2" class="hud-player"><span id="hudP2Name">Player 2</span><b id="hudP2Score">0</b></div>
+        </div>
+        <div class="hudbottom"><span id="motionHud">Table —</span><span id="ballsHud">Balls —</span><span id="cueHud">Cue —</span><span id="storageHud">Storage —</span></div>
+      </div>
+
+      <div class="primary-row">
+        <button id="startCameraBtn" class="btn primary">1. Start Camera</button>
+        <button id="calibrateBtn" class="btn" disabled>2. Calibrate Table</button>
+        <button id="scanBtn" class="btn purple" disabled>3. Scan Balls</button>
+        <button id="startGameBtn" class="btn blue" disabled>4. Start Game</button>
+        <button id="endGameBtn" class="btn red" disabled>End Game</button>
+      </div>
+    </section>
+
+    <section id="turnPanel" class="turn-panel">
+      <div><small>CURRENT PLAYER</small><strong id="currentPlayer">—</strong><span id="turnReason">Complete setup first</span></div>
+      <div class="turn-side"><b id="autoResult">Waiting</b><span id="autoConfidence">Automatic turn tracking</span><button id="resumeAfterBIH" class="resume-bih hidden">Ball placed · Resume</button></div>
+    </section>
+
+    <section id="setupWarning" class="notice">Start the camera → calibrate the four cloth corners → place all 15 object balls and cue ball on the table → tap <b>Scan Balls</b>.</section>
+
+    <section id="visionReview" class="vision-review hidden">
+      <div><small>VISION NEEDS CONFIRMATION</small><strong id="visionReviewTitle">What happened?</strong><span id="visionReviewDetail">The camera result was ambiguous.</span></div>
+      <div class="vision-review-actions"><button data-vision-review="pot" class="review-btn pot">✓ Pot</button><button data-vision-review="miss" class="review-btn">× Miss</button><button data-vision-review="scratch" class="review-btn scratch">↺ Scratch</button></div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-page="game">Game</button>
+      <button class="tab" data-page="vision">Vision</button>
+      <button class="tab" data-page="timeline">Timeline</button>
+      <button class="tab" data-page="history">History</button>
+    </nav>
+
+    <section id="gamePage" class="page active">
+      <div class="grid two">
+        <article class="card">
+          <div class="section-title"><h2>Game setup</h2><span>Set before Start Game</span></div>
+          <div class="form-grid">
+            <label>Player 1<input id="p1" value="Sohil"></label>
+            <label>Player 2<input id="p2" value="Friend"></label>
+            <label>Breaker<select id="breaker"><option value="0">Player 1</option><option value="1">Player 2</option></select></label>
+            <label>Race to<select id="raceTo"><option>1</option><option>3</option><option selected>5</option><option>7</option></select></label>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="section-title"><h2>Detector readiness</h2><span id="detectorReadyLabel">Not calibrated</span></div>
+          <div class="state-grid">
+            <div><b id="detectedCount">—</b><span>balls seen</span></div>
+            <div><b id="detectedCue">—</b><span>cue ball</span></div>
+            <div><b id="detectorStability">—</b><span>scan stability</span></div>
+            <div><b id="detectorParam">—</b><span>detector tune</span></div>
+          </div>
+          <p class="small muted">The detector uses the first full-table scan to tune itself. PoolCam only arms automatic play after a stable scan of all 15 object balls plus the cue ball (16 total).</p>
+        </article>
+      </div>
+
+      <article class="card">
+        <div class="section-title"><h2>Automatic game state</h2><span>Turn comes from shot result, not face recognition</span></div>
+        <div class="game-state">
+          <div><small>TABLE</small><b id="openTable">OPEN</b></div>
+          <div><small>P1 GROUP</small><b id="p1Group">—</b></div>
+          <div><small>P2 GROUP</small><b id="p2Group">—</b></div>
+          <div><small>BALL IN HAND</small><b id="ballInHand">NO</b></div>
+        </div>
+        <div class="group-row">
+          <button id="p1SolidsBtn" class="soft">P1 = Solids</button>
+          <button id="p1StripesBtn" class="soft">P1 = Stripes</button>
+          <button id="resetGroupsBtn" class="soft">Open table</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="section-title"><h2>Corrections / fouls</h2><span>Automatic for pot/miss/scratch; use these only if needed</span></div>
+        <div class="action-grid">
+          <button data-manual="pot" class="action pot">✓ Pot</button>
+          <button data-manual="miss" class="action">× Miss</button>
+          <button data-manual="scratch" class="action scratch">↺ Scratch</button>
+          <button id="safetyBtn" class="action safety">◇ Safety</button>
+          <button id="foulBtn" class="action foul">! Other Foul</button>
+          <button id="eightBallBtn" class="action eight">8 8-Ball Result</button><button id="highlightBtn" class="action highlight">★ Highlight</button>
+          <button id="switchBtn" class="action">⇄ Switch Player</button>
+          <button id="undoBtn" class="action">↶ Undo</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="section-title"><h2>Rack score</h2><span>8-ball winner can be confirmed manually until full ball-number recognition is added</span></div>
+        <div class="rack-row"><button id="p1RackBtn" class="btn">+ Rack: Player 1</button><button id="p2RackBtn" class="btn">+ Rack: Player 2</button><button id="newRackBtn" class="btn">New Rack</button></div>
+      </article>
+
+      <article class="card">
+        <div class="section-title"><h2>Live stats</h2><span>Current session</span></div>
+        <div id="metrics" class="metrics"></div>
+      </article>
+    </section>
+
+    <section id="visionPage" class="page">
+      <div class="grid two">
+        <article class="card">
+          <div class="section-title"><h2>What the detector sees</h2><span>Perspective-corrected table</span></div>
+          <canvas id="debugCanvas" width="640" height="320" class="debug-canvas"></canvas>
+          <p class="small muted">Green circles = detected balls. White ring = cue-ball candidate. This is the screen to check if automatic turns are wrong.</p>
+        </article>
+        <article class="card">
+          <div class="section-title"><h2>Vision status</h2><span>OpenCV + motion engine</span></div>
+          <div class="engine-list">
+            <div><span>OpenCV</span><b id="engCv">Loading</b></div>
+            <div><span>Table calibration</span><b id="engCal">Waiting</b></div>
+            <div><span>Motion detector</span><b id="engMotion">Waiting</b></div>
+            <div><span>Circle detector</span><b id="engCircle">Waiting</b></div>
+            <div><span>Last pocket motion</span><b id="engPocket">—</b></div>
+            <div><span>Last shot confidence</span><b id="engConf">—</b></div>
+          </div>
+        </article>
+      </div>
+      <article class="card"><div class="section-title"><h2>Saved video</h2><span>90-second safety segments, grouped into this game</span></div><div id="recordings" class="empty">No recordings yet.</div></article>
+    </section>
+
+    <section id="timelinePage" class="page">
+      <article class="card"><div class="section-title"><h2>Game timeline</h2><span id="timelineCount">0 shots</span></div><div id="timeline" class="empty">No game events yet.</div></article>
+    </section>
+
+    <section id="historyPage" class="page">
+      <article class="card"><div class="section-title"><h2>Saved games</h2><span>On this iPad/browser</span></div><div id="history" class="empty">No saved games yet.</div></article>
+      <article class="card"><div class="section-title"><h2>Export</h2></div><div class="primary-row"><button id="exportBtn" class="btn">Export JSON</button><button id="emailBtn" class="btn">Email Summary</button><button id="clearBtn" class="btn red-outline">Clear Local Data</button></div></article>
+    </section>
+  </main>
+
+  <div id="calGuide" class="cal-guide hidden"><strong id="calInstruction">Tap top-left cloth corner</strong><span>Tap directly on the live video.</span><button id="cancelCal">Cancel</button></div>
+
+  <div id="scanOverlay" class="sheet hidden"><div class="sheet-card center"><div class="spinner"></div><h2 id="scanTitle">Scanning balls…</h2><p id="scanText">Flattening the table and tuning circle detection.</p></div></div>
+
+  <div id="foulSheet" class="sheet hidden"><div class="sheet-card"><div class="section-title"><h2>Select foul</h2><button id="closeFoul" class="x">×</button></div><div class="foul-grid">
+    <button data-foul="scratch">Cue-ball scratch</button><button data-foul="illegal-break">Illegal break</button><button data-foul="wrong-ball-first">Wrong ball first</button><button data-foul="no-rail">No rail after contact</button><button data-foul="no-foot">No foot on floor</button><button data-foul="ball-off-table">Ball off table</button><button data-foul="double-hit">Double hit</button><button data-foul="push-shot">Push shot</button><button data-foul="touched-ball">Touched / moved ball</button><button data-foul="balls-moving">Shot while balls moving</button><button data-foul="bad-cue-placement">Bad cue-ball placement</button><button data-foul="bad-head-string-play">Bad play from above head string</button><button data-foul="out-of-turn">Playing out of turn</button><button data-foul="slow-play">Slow play</button><button data-foul="rack-template">Ball rack template foul</button><button data-foul="other">Other</button>
+  </div></div></div>
+
+  <div id="eightBallSheet" class="sheet hidden"><div class="sheet-card"><div class="section-title"><h2>8-ball result</h2><button id="closeEightBall" class="x">×</button></div><div class="foul-grid">
+    <button data-eight="legal">Legal 8-ball after break — shooter wins rack</button><button data-eight="early">8-ball early — shooter loses rack</button><button data-eight="wrong-pocket">Wrong / uncalled pocket — shooter loses rack</button><button data-eight="foul">8-ball + foul after break — shooter loses rack</button><button data-eight="off-table">8-ball off table after break — shooter loses rack</button><button data-eight="break-rerack">Legal 8-ball on break — re-rack / same breaker</button><button data-eight="break-spot">Legal 8-ball on break — spot 8 and breaker continues</button><button data-eight="break-foul-spot">8-ball + foul on break — spot 8 + incoming BIH above Head String</button><button data-eight="break-foul-rerack">8-ball + foul on break — re-rack / incoming player breaks</button>
+  </div></div></div>
+
+
+  <div id="illegalBreakSheet" class="sheet hidden"><div class="sheet-card"><div class="section-title"><h2>Illegal break — incoming player's choice</h2><button id="closeIllegalBreak" class="x">×</button></div><p class="small muted">WPA 8-ball: if no ball is pocketed and fewer than four object balls reach rails, the incoming player chooses one option.</p><div class="foul-grid">
+    <button data-illegal-break="accept">Accept table in position</button><button data-illegal-break="incoming-rerack">Re-rack · incoming player breaks</button><button data-illegal-break="breaker-rerack">Re-rack · original breaker breaks again</button>
+  </div></div></div>
+
+  <div id="breakFoulSheet" class="sheet hidden"><div class="sheet-card"><div class="section-title"><h2>Break foul — incoming player's choice</h2><button id="closeBreakFoul" class="x">×</button></div><p class="small muted">For a normal break foul / object ball off table, choose whether to accept the table or take cue-ball in hand above the Head String.</p><div class="foul-grid">
+    <button data-break-foul-option="accept">Accept table in position</button><button data-break-foul-option="head-string">Cue-ball in hand above Head String</button>
+  </div></div></div>
+
+  <canvas id="motionCanvas" width="320" height="180" hidden></canvas>
+  <canvas id="sourceCanvas" width="960" height="540" hidden></canvas>
+</div>
+
+<script>
+  window.Module = window.Module || {};
+  window.Module.onRuntimeInitialized = function(){ window.dispatchEvent(new Event('poolcam-opencv-runtime')); };
+</script>
+<script async src="https://docs.opencv.org/4.13.0/opencv.js"></script>
+<script src="./rules.js"></script>
+<script src="./decision.js"></script>
+<script src="./vision.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

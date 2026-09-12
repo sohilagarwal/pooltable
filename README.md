@@ -1,147 +1,135 @@
-# PoolCam v3.0 Core
+# PoolCam v4.2 Audited — Automatic Home Pool Analyzer
 
-GitHub-ready installable PWA for a home pool table and an older iPad Pro.
+This is the GitHub Pages / iPad PWA build for a fixed overhead home pool-table camera.
 
-## Core gameplay loop
+## What it does
 
-The software is built around this state machine:
+- records the game locally in ~90-second safety segments grouped into one session
+- calibrates the four inside cloth corners and perspective-flattens the table to 640×320
+- loads OpenCV.js and uses Hough-circle detection for actual ball candidates
+- requires a stable opening scan of all **15 object balls + cue ball (16 total)** before automatic play can start
+- learns the cue-ball appearance from the isolated cue ball beside the opening rack, then uses that model during play
+- runs lightweight motion detection separately in a Web Worker
+- detects `still → shot → moving → stable`
+- after each shot, takes multiple stable ball scans and compares them with the pre-shot physical table baseline
+- combines **ball-count change + pocket-area motion** before automatically calling a pot/scratch
+- treats uncertain detections as a visible Pot / Miss / Scratch confirmation instead of silently changing the turn
+- automatically applies the core turn loop:
+  - legal pot → shooter continues
+  - no pot → other player
+  - scratch / standard foul → other player + ball in hand
+  - declared safety → other player
+- pauses after a scratch so cue-ball placement is not mistaken for a shot
+- requires a fresh 16-ball scan after re-racking before the next rack starts
+- stores timeline, rack score, pots, misses, scratches, fouls, runs and previous sessions
+- supports manual solids / stripes assignment until exact numbered-ball classification is reliable
+- supports manually confirmed 8-ball rack outcomes and a foul picker
+- exports session JSON, email summary and saved video files
 
-1. Table is still -> capture approximate ball state.
-2. Motion begins -> shot starts.
-3. Balls move -> monitor table and six pocket zones.
-4. Table becomes still again -> capture new ball state.
-5. Compare before vs after.
-6. Infer pot / miss / likely scratch and attach confidence.
-7. High confidence -> apply automatically.
-8. Low confidence -> ask for one-tap confirmation.
-9. Rules engine decides who plays next.
-10. Save event to timeline and statistics.
+## Why the pot detector is binary
 
-Turn logic:
-- legal pot -> same player continues
-- no pot -> other player
-- scratch/foul -> other player + ball in hand
-- declared safety -> other player
+A Hough-circle detector can occasionally change its raw count when a tight rack becomes a scattered table even when no ball was pocketed. Synthetic tests reproduced this. Therefore PoolCam v4.2 does **not** pretend that a raw count drop of two means exactly two balls were pocketed.
 
-## Included
+For automatic turn tracking it answers the safer question:
 
-- Rear-camera recording
-- 90-second safe local recording segments belonging to one session
-- Four-corner table calibration
-- Video letterbox-aware calibration coordinates
-- Six pocket-zone generation
-- 256x144 lightweight analysis frames
-- Web Worker vision processing
-- Shot start/end detection from motion
-- Approximate ball candidate detection based on felt-color difference
-- Approximate cue-ball candidate detection
-- Before/after ball count comparison
-- Pocket-area motion measurement
-- Pot / miss / scratch inference with confidence
-- Confidence threshold setting
-- Low-confidence shot review
-- Automatic player turn tracking
-- Break-shot state
-- Ball-in-hand state
-- Open-table state
-- Solids / stripes state with manual assignment
-- WPA-style foul categories
-- House-rule switches for selected common variants
-- Safety declaration
-- 8-ball result handling
-- Rack score and race-to score
-- Manual switch player
-- Undo
-- Highlight timestamps
-- Timeline
-- Basic stats and insights
-- IndexedDB session history
-- Video save links
-- JSON session export
-- Email summary
-- PWA/offline shell via service worker
+**Did at least one legal object ball appear to be pocketed?**
 
-## Important limits of this build
+A normal automatic pot needs both:
 
-This is the first version that attempts the actual game loop, but it does not pretend one overhead iPad can reliably see every pool-rule detail yet.
+1. a plausible before/after ball disappearance, and
+2. convincing motion in a calibrated pocket zone.
 
-Automatic vision currently attempts:
-- shot occurred
-- table stopped
-- approximate object-ball disappearance
-- likely pot/no-pot
-- likely cue-ball disappearance / scratch
-- activity near a pocket
+On a break, count changes are treated even more cautiously because rack-to-scatter geometry is the hardest case. Ambiguous shots ask for one tap rather than silently changing the game incorrectly.
 
-Still manual or semi-manual:
-- exact numbered ball
-- solids vs stripes recognition
-- first ball contacted
-- rail-after-contact proof
-- called ball / called pocket
-- double hit
+## First setup
+
+1. Open the GitHub Pages site on the iPad and wait for **Vision ready**.
+2. Tap **Start Camera**.
+3. Mount/aim the iPad so the entire playing surface and six pockets are visible.
+4. Tap **Calibrate Table** and tap:
+   - top-left
+   - top-right
+   - bottom-right
+   - bottom-left
+5. Put the full 15-ball rack on the table plus the cue ball in breaking position.
+6. Tap **Scan Balls**.
+7. Open **Vision** and confirm green circles sit on the balls and the readout says approximately:
+   `16 balls · cue YES`
+8. PoolCam will only enable **Start Game** after a stable 16-ball + cue scan.
+9. Start the game and select the breaker.
+
+## Expected core game behavior
+
+- dry break → incoming player
+- break with a confirmed pot → breaker continues
+- normal pot → same player continues
+- miss → switch player
+- scratch → switch player + BALL IN HAND
+- safety → switch player
+
+The software does not use face recognition to identify the shooter. Once the breaker is selected, the rules state determines the current player.
+
+## What is deliberately manual
+
+A single overhead iPad cannot reliably prove every tournament foul. PoolCam therefore provides manual correction for things such as:
+
+- wrong ball first
+- no rail after contact
+- no foot on floor
+- touched/moved ball
+- double hit / frozen-ball foul
 - push shot
-- clothing/hand touching a ball
-- foot-on-floor foul
-- subtle ball-off-table situations
+- shooting while balls are still moving
+- bad cue-ball placement
+- bad play from above the head string
+- playing out of turn
+- slow play
+- ball-rack-template foul
+- ball driven off the table
+- illegal break
+- exact 8-ball / called-pocket outcome
 
-For those cases, use the large correction/foul controls. The rules engine applies the consequence after you identify the event.
+This is intentional: the vision engine should automate only what it can observe with useful confidence.
 
-## Upload to GitHub
+## OpenCV first-load requirement
 
-Repository root should contain exactly these files:
+OpenCV.js is loaded from the official OpenCV 4.13 documentation build. The iPad needs internet access on first load. The service worker will cache fetched resources when possible for later use.
 
-- index.html
-- styles.css
-- rules.js
-- app.js
-- worker.js
-- sw.js
-- manifest.webmanifest
-- README.md
+Wait until the app says **Vision ready** before scanning.
 
-If GitHub Pages is already configured for your repository from `main` and `/ (root)`, upload/replace these files and commit.
+## GitHub Pages files
 
-On the iPad, confirm the header says:
+Upload these files to the repository root:
 
-`Home Pool Analyzer · v3.0 core`
+- `index.html`
+- `styles.css`
+- `rules.js`
+- `decision.js`
+- `vision.js`
+- `motion-worker.js`
+- `app.js`
+- `sw.js`
+- `manifest.webmanifest`
+- `README.md`
 
-If you still see an older version, clear the github.io site data in Safari and reopen the site.
+The header must show:
 
-## First real-table test
+`Automatic Home Pool Analyzer · v4.2 audited`
 
-Test only the core loop first:
+If you still see an older version, Safari / the old PWA is cached.
 
-1. Start Camera.
-2. Calibrate the four inside cloth corners.
-3. Enter Player 1 / Player 2 and breaker.
-4. Start Game.
-5. Break with no ball going in.
-6. Wait for all balls to stop.
-7. Check whether the turn changes to Player 2.
-8. Have Player 2 pot one ball.
-9. Check whether Player 2 remains current.
-10. Have Player 2 miss.
-11. Check whether turn changes to Player 1.
-12. Scratch the cue ball.
-13. Check whether the opponent becomes current and BALL IN HAND appears.
-14. End Game.
-15. Review Timeline, Analysis and Saved Video.
+## Acceptance test
 
-## Internal validation performed
+Do this before playing a long match:
 
-- app.js syntax checked
-- rules.js syntax checked
-- worker.js syntax checked
-- sw.js syntax checked
-- every `$()` UI id referenced by app.js was verified to exist in index.html
-- local assets referenced by index.html were verified present
-- rules acceptance sequence tested:
-  - break + no pot -> switch player
-  - pot -> same player
-  - miss -> switch player
-  - scratch -> switch player + ball in hand
-  - safety -> switch player
-  - generic foul -> switch player + ball in hand
+1. full rack scan = stable 16 + cue YES
+2. dry break → other player
+3. pot one ball → same player
+4. miss → other player
+5. scratch → other player + BALL IN HAND
+6. replace cue ball and Resume
+7. End Game → timeline and stats remain saved
 
-The remaining validation must happen against the real iPad/table/camera/lighting because vision thresholds cannot be proven in a desktop code audit.
+## Important real-world limitation
+
+The code, rules transitions, motion state machine, caching references, DOM wiring and synthetic detector cases can be tested off-device. Exact vision accuracy still depends on the real table: camera height, glare, shadows, cloth color, ball size in pixels and how completely the pockets are visible. The Vision tab is intentionally included so the detector's actual circles are visible rather than hidden behind a number.

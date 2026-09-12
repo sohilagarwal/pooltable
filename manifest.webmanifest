@@ -1,10 +1,10 @@
 {
-  "name":"PoolCam Home Pool Analyzer",
+  "name":"PoolCam Automatic Home Pool Analyzer",
   "short_name":"PoolCam",
   "start_url":"./",
   "scope":"./",
   "display":"standalone",
-  "background_color":"#07110c",
-  "theme_color":"#07110c",
-  "description":"Local-first pool recording, shot detection, turn tracking, rules, statistics and game history."
+  "background_color":"#07100b",
+  "theme_color":"#08120d",
+  "description":"Records home pool games and automatically detects shots, visible balls, likely pots, scratches and player turns."
 }
