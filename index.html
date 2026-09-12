@@ -13,7 +13,7 @@
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="eight">8</div><div><strong>PoolCam</strong><small>Automatic Home Pool Analyzer · v4.2 audited</small></div></div>
+    <div class="brand"><div class="eight">8</div><div><strong>PoolCam</strong><small>Automatic Home Pool Analyzer · v4.4 camera-isolated</small></div></div>
     <div class="topright"><span id="opencvStatus" class="chip warn">Vision loading…</span><span id="appStatus" class="chip">Idle</span></div>
   </header>
 
@@ -184,7 +184,7 @@
   window.Module = window.Module || {};
   window.Module.onRuntimeInitialized = function(){ window.dispatchEvent(new Event('poolcam-opencv-runtime')); };
 </script>
-<script async src="https://docs.opencv.org/4.13.0/opencv.js"></script>
+<script src="./camera.js"></script>
 <script src="./rules.js"></script>
 <script src="./decision.js"></script>
 <script src="./vision.js"></script>

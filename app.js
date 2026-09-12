@@ -29,35 +29,55 @@ function setupText(){
 }
 $('p1').addEventListener('input',setupText);$('p2').addEventListener('input',setupText);setupText();
 
-// ---------- OpenCV ----------
+// ---------- OpenCV (lazy: camera must work even if vision does not) ----------
+let openCvScriptPromise=null;
+function loadOpenCvScript(){
+  if(window.cv)return Promise.resolve(true);
+  if(openCvScriptPromise)return openCvScriptPromise;
+  openCvScriptPromise=new Promise((resolve,reject)=>{
+    const existing=document.querySelector('script[data-poolcam-opencv]');
+    if(existing){existing.addEventListener('load',()=>resolve(true),{once:true});existing.addEventListener('error',()=>reject(new Error('OpenCV download failed')),{once:true});return;}
+    window.Module=window.Module||{};
+    const previous=window.Module.onRuntimeInitialized;
+    window.Module.onRuntimeInitialized=function(){try{if(typeof previous==='function')previous()}catch{};window.dispatchEvent(new Event('poolcam-opencv-runtime'));};
+    const script=document.createElement('script');script.async=true;script.dataset.poolcamOpencv='1';script.src='https://docs.opencv.org/4.13.0/opencv.js';
+    script.onload=()=>resolve(true);script.onerror=()=>reject(new Error('OpenCV download failed'));document.head.appendChild(script);
+  });
+  return openCvScriptPromise;
+}
 async function initVision(){
   if(visionReady)return true;
   if(visionInitPromise)return visionInitPromise;
   visionInitPromise=(async()=>{
-    if(!vision)vision=new PoolVision($('sourceCanvas'),$('debugCanvas'));
     try{
+      $('opencvStatus').textContent='Vision loading…';$('opencvStatus').className='chip warn';
+      await loadOpenCvScript();
+      if(!vision)vision=new PoolVision($('sourceCanvas'),$('debugCanvas'));
       await vision.init(35000);visionReady=true;$('opencvStatus').textContent='Vision ready';$('opencvStatus').className='chip live';$('engCv').textContent='Ready';updateButtons();return true;
     }catch(e){
-      $('opencvStatus').textContent='Vision failed';$('engCv').textContent='Failed';$('setupWarning').innerHTML=`OpenCV did not load. Keep the iPad online, reload this page, and wait for <b>Vision ready</b>.`;console.error(e);return false;
+      $('opencvStatus').textContent='Vision unavailable';$('opencvStatus').className='chip warn';$('engCv').textContent='Unavailable';
+      $('setupWarning').innerHTML=`Camera is working, but the vision library did not load. Keep the iPad online and tap <b>Retry Vision</b> below.`;
+      console.error(e);return false;
     }finally{visionInitPromise=null;}
   })();
   return visionInitPromise;
 }
-initVision();
-window.addEventListener('poolcam-opencv-runtime',()=>{if(!visionReady)initVision()},{once:true});
+window.addEventListener('poolcam-opencv-runtime',()=>{if(stream&&!visionReady)initVision()});
 
 // ---------- Tabs ----------
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.page+'Page').classList.add('active');renderAll()});
 
-// ---------- Camera ----------
-$('startCameraBtn').onclick=async()=>{
-  const c={video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}},audio:true};
-  try{stream=await navigator.mediaDevices.getUserMedia(c)}catch(e){try{stream=await navigator.mediaDevices.getUserMedia({...c,audio:false})}catch(err){alert('Camera failed: '+err.message);return}}
-  $('video').srcObject=stream;$('emptyCamera').classList.add('hidden');$('startCameraBtn').disabled=true;$('calibrateBtn').disabled=false;setAppStatus('Camera ready',true);
+// ---------- Camera integration ----------
+function acceptCameraStream(mediaStream){
+  stream=mediaStream;
   const saved=localStorage.getItem('poolcam-v4-cal');if(saved){try{calibration=JSON.parse(saved)}catch{calibration=[]}}
   if(calibration.length===4){$('engCal').textContent='Calibrated';drawOverlay()}
   setupMotionWorker();resizeOverlay();updateStorage();updateButtons();
-};
+  // Vision loads only after live camera frames exist. Camera never depends on OpenCV.
+  setTimeout(()=>initVision(),150);
+}
+window.addEventListener('poolcam-camera-ready',e=>acceptCameraStream(e.detail.stream));
+if(window.PoolCamCamera?.getStream?.())acceptCameraStream(window.PoolCamCamera.getStream());
 window.addEventListener('resize',resizeOverlay);
 
 function videoRect(){

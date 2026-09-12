@@ -1,3 +1,11 @@
+# PoolCam v4.4 camera-isolated
+
+The camera is now bootstrapped by a tiny standalone `camera.js` loaded before the game/vision code. Camera startup does not depend on OpenCV, rules, ball detection, recording, or app initialization. A `camera-test.html` page is included for direct iPad camera verification.
+
+# PoolCam v4.3 camera-safe
+
+Camera startup is now completely independent of OpenCV. It uses camera-only permission, multiple Safari fallbacks, explicit video.play(), and loads vision only after live camera frames are confirmed.
+
 # PoolCam v4.2 Audited — Automatic Home Pool Analyzer
 
 This is the GitHub Pages / iPad PWA build for a fixed overhead home pool-table camera.
