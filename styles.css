@@ -38,3 +38,18 @@ input,select{display:block;width:100%;margin-top:6px;border:1px solid var(--line
 .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}.engineList div{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #222a24}.engineList div:first-child{border-top:0}.engineList span{color:var(--muted);font-size:13px}.engineList b{font-size:12px}.insights .insight{padding:10px 0;border-top:1px solid #222a24}.insight:first-child{border-top:0}.insight b{display:block}.insight span{font-size:12px;color:var(--muted)}
 .download{color:#9dd0ff;text-decoration:none;font-weight:750}.sheet{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:grid;place-items:end center;padding:14px}.sheet.hidden{display:none}.sheetCard{width:min(620px,100%);background:#161c18;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 20px 60px #000}.sheetCard h2{margin-top:0}.sheetCard p{color:var(--muted)}.cornerOrder{background:#0d120f;padding:12px;border-radius:12px;color:#dfe6e1}.sheetActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 @media(max-width:760px){.two,.formgrid{grid-template-columns:1fr}.shotButtons{grid-template-columns:repeat(2,1fr)}.shotbtn.highlight{grid-column:span 2}.metrics{grid-template-columns:repeat(3,1fr)}.video-wrap{min-height:240px}.turnCard{flex-direction:column}.miniStats{width:100%}}
+
+/* v2.3 audited calibration + rack controls */
+body.calibrating .video-wrap{outline:2px solid rgba(76,227,138,.65);outline-offset:2px}
+.calibration-hint{
+  position:absolute;left:50%;top:72px;transform:translateX(-50%);z-index:12;
+  pointer-events:none;background:rgba(9,14,11,.92);border:1px solid rgba(76,227,138,.55);
+  color:#b7ffd0;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);white-space:nowrap
+}
+.calibration-hint.hidden{display:none}
+body.calibrating #overlay{pointer-events:auto!important;z-index:11;cursor:crosshair}
+body.calibrating .scorebar,body.calibrating .video-badges{opacity:.22}
+.rackButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.rackbtn{border:1px solid var(--line);background:#111713;color:#d9e1dc;padding:11px;border-radius:11px;font-weight:750}
+@media(max-width:760px){.rackButtons{grid-template-columns:1fr}.calibration-hint{top:64px;max-width:88%;overflow:hidden;text-overflow:ellipsis}}

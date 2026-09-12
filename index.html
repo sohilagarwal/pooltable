@@ -15,7 +15,7 @@
     <header class="topbar">
       <div class="brand">
         <div class="logo">🎱</div>
-        <div><b>PoolCam</b><small>Smart table console</small></div>
+        <div><b>PoolCam</b><small>Smart table console · v2.3 audited</small></div>
       </div>
       <div class="top-actions">
         <span id="engineState" class="status idle">Idle</span>
@@ -48,6 +48,8 @@
               <strong id="p2Wins">0</strong>
             </div>
           </div>
+
+          <div id="calibrationHint" class="calibration-hint hidden">Tap corner 1 of 4</div>
 
           <div class="video-badges">
             <span id="shotBadge">0 shots</span>
@@ -110,6 +112,10 @@
             <button data-result="safety" class="shotbtn safety">◇ Safety</button>
             <button id="highlightBtn" class="shotbtn highlight">★ Highlight</button>
           </div>
+          <div class="rackButtons">
+            <button id="p1RackBtn" class="rackbtn">+ Rack for Player 1</button>
+            <button id="p2RackBtn" class="rackbtn">+ Rack for Player 2</button>
+          </div>
         </div>
 
         <div class="card">
@@ -164,19 +170,6 @@
         </div>
       </section>
     </main>
-
-    <div id="calibrationSheet" class="sheet hidden">
-      <div class="sheetCard">
-        <h2>Calibrate table</h2>
-        <p>Tap the four inside corners of the playing surface in this order:</p>
-        <div class="cornerOrder">① Top-left → ② Top-right → ③ Bottom-right → ④ Bottom-left</div>
-        <p id="calStep"><b>Tap corner 1 of 4</b></p>
-        <div class="sheetActions">
-          <button id="cancelCalBtn" class="btn">Cancel</button>
-          <button id="resetCalBtn" class="btn">Reset</button>
-        </div>
-      </div>
-    </div>
 
     <div id="settingsSheet" class="sheet hidden">
       <div class="sheetCard">
