@@ -13,7 +13,7 @@
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="eight">8</div><div><strong>PoolCam</strong><small>Automatic Home Pool Analyzer · v4.4 camera-isolated</small></div></div>
+    <div class="brand"><div class="eight">8</div><div><strong>PoolCam</strong><small>Automatic Home Pool Analyzer · v4.5 calibration-safe</small></div></div>
     <div class="topright"><span id="opencvStatus" class="chip warn">Vision loading…</span><span id="appStatus" class="chip">Idle</span></div>
   </header>
 
@@ -155,7 +155,7 @@
     </section>
   </main>
 
-  <div id="calGuide" class="cal-guide hidden"><strong id="calInstruction">Tap top-left cloth corner</strong><span>Tap directly on the live video.</span><button id="cancelCal">Cancel</button></div>
+  <div id="calGuide" class="cal-guide hidden"><strong id="calInstruction">Tap top-left cloth corner</strong><span>Tap directly on the live video.</span><span id="calTapStatus">0/4 corners captured</span><button id="cancelCal">Cancel</button></div>
 
   <div id="scanOverlay" class="sheet hidden"><div class="sheet-card center"><div class="spinner"></div><h2 id="scanTitle">Scanning balls…</h2><p id="scanText">Flattening the table and tuning circle detection.</p></div></div>
 
@@ -185,6 +185,7 @@
   window.Module.onRuntimeInitialized = function(){ window.dispatchEvent(new Event('poolcam-opencv-runtime')); };
 </script>
 <script src="./camera.js"></script>
+<script src="./calibration.js"></script>
 <script src="./rules.js"></script>
 <script src="./decision.js"></script>
 <script src="./vision.js"></script>

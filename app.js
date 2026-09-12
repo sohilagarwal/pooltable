@@ -70,7 +70,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelect
 // ---------- Camera integration ----------
 function acceptCameraStream(mediaStream){
   stream=mediaStream;
-  const saved=localStorage.getItem('poolcam-v4-cal');if(saved){try{calibration=JSON.parse(saved)}catch{calibration=[]}}
+  const saved=localStorage.getItem('poolcam-v45-cal');if(saved){try{calibration=JSON.parse(saved)}catch{calibration=[]}}
   if(calibration.length===4){$('engCal').textContent='Calibrated';drawOverlay()}
   setupMotionWorker();resizeOverlay();updateStorage();updateButtons();
   // Vision loads only after live camera frames exist. Camera never depends on OpenCV.
@@ -85,23 +85,38 @@ function videoRect(){
   if(va>sa){w=stage.width;h=w/va;left=0;top=(stage.height-h)/2}else{h=stage.height;w=h*va;top=0;left=(stage.width-w)/2}return{stage,w,h,left,top};
 }
 function resizeOverlay(){const c=$('overlay'),r=$('videoStage').getBoundingClientRect(),d=devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);c.style.width=r.width+'px';c.style.height=r.height+'px';drawOverlay()}
-function drawOverlay(){
-  const c=$('overlay'),ctx=c.getContext('2d'),d=devicePixelRatio||1;ctx.clearRect(0,0,c.width,c.height);if(!calibration.length)return;const vr=videoRect(),map=p=>({x:(vr.left+p.x*vr.w)*d,y:(vr.top+p.y*vr.h)*d});
-  ctx.strokeStyle='#50e58a';ctx.fillStyle='#50e58a';ctx.lineWidth=3*d;ctx.beginPath();calibration.forEach((p,i)=>{const q=map(p);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)});if(calibration.length===4)ctx.closePath();ctx.stroke();
-  calibration.forEach((p,i)=>{const q=map(p);ctx.beginPath();ctx.arc(q.x,q.y,7*d,0,Math.PI*2);ctx.fill();ctx.font=`${13*d}px sans-serif`;ctx.fillText(String(i+1),q.x+10*d,q.y-8*d)});
-}
+function drawOverlay(){ if(window.PoolCamCalibration){PoolCamCalibration.set(calibration);PoolCamCalibration.draw();} }
 const cornerNames=['top-left','top-right','bottom-right','bottom-left'];
-$('calibrateBtn').onclick=()=>{if(gameActive)return;calibrating=true;calibration=[];detectorReady=false;document.body.classList.add('calibrating');$('calGuide').classList.remove('hidden');$('calInstruction').textContent='Tap '+cornerNames[0]+' cloth corner';drawOverlay();updateButtons()};
-$('cancelCal').onclick=()=>finishCalibration(false);
-$('overlay').addEventListener('pointerdown',e=>{
-  if(!calibrating)return;e.preventDefault();const stage=$('videoStage').getBoundingClientRect(),vr=videoRect(),x=e.clientX-stage.left,y=e.clientY-stage.top;if(x<vr.left||x>vr.left+vr.w||y<vr.top||y>vr.top+vr.h)return;
-  calibration.push({x:(x-vr.left)/vr.w,y:(y-vr.top)/vr.h});drawOverlay();if(calibration.length===4)finishCalibration(true);else $('calInstruction').textContent='Tap '+cornerNames[calibration.length]+' cloth corner';
-},{passive:false});
-function finishCalibration(ok){
-  calibrating=false;document.body.classList.remove('calibrating');$('calGuide').classList.add('hidden');
-  if(ok&&calibration.length===4){localStorage.setItem('poolcam-v4-cal',JSON.stringify(calibration));$('engCal').textContent='Calibrated';$('calibrateBtn').textContent='Recalibrate Table';configureMotionWorker();drawOverlay();$('setupWarning').innerHTML='Now put the full rack plus cue ball on the table and tap <b>Scan Balls</b>. The Vision tab will show exactly which circles are being detected.'}
-  else{const saved=localStorage.getItem('poolcam-v4-cal');calibration=saved?JSON.parse(saved):[];drawOverlay()}
+$('calibrateBtn').onclick=()=>{
+  if(gameActive||!stream)return;
+  detectorReady=false;
+  calibration=[];
+  PoolCamCalibration.start();
   updateButtons();
+};
+$('cancelCal').onclick=()=>PoolCamCalibration.cancel();
+window.addEventListener('poolcam-calibration-point',e=>{
+  calibration=e.detail.points;
+});
+window.addEventListener('poolcam-calibration-complete',e=>{
+  calibration=e.detail.points;
+  $('engCal').textContent='Calibrated';
+  $('calibrateBtn').textContent='Recalibrate Table';
+  configureMotionWorker();
+  PoolCamCalibration.set(calibration);
+  $('setupWarning').innerHTML='Calibration complete. Now put the full rack plus cue ball on the table and tap <b>Scan Balls</b>.';
+  updateButtons();
+});
+window.addEventListener('poolcam-calibration-cancelled',()=>{
+  calibration=PoolCamCalibration.load();
+  updateButtons();
+});
+function finishCalibration(ok){
+  // retained for compatibility with older code paths
+  if(ok&&PoolCamCalibration.get().length===4){
+    calibration=PoolCamCalibration.get();
+    window.dispatchEvent(new CustomEvent('poolcam-calibration-complete',{detail:{points:calibration}}));
+  }else PoolCamCalibration.cancel();
 }
 
 // ---------- Ball detector calibration ----------

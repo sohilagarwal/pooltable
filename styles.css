@@ -4,3 +4,5 @@
 .resume-bih{margin-top:8px;border:1px solid #5c8b69;background:#e9fff0;color:#15351f;border-radius:10px;padding:9px 11px;font-weight:850}.turn-side .resume-bih{display:inline-block}.turn-side .resume-bih.hidden{display:none!important}
 
 .vision-review{max-width:1180px;margin:0 auto 12px;padding:14px 16px;border-radius:16px;background:#302711;border:1px solid #715b26;display:flex;align-items:center;justify-content:space-between;gap:12px}.vision-review small,.vision-review span{display:block;color:#d7c493}.vision-review strong{display:block;font-size:18px;margin:2px 0}.vision-review-actions{display:flex;gap:7px;flex-wrap:wrap}.review-btn{border:1px solid #735f2d;background:#201a0c;color:#fff;border-radius:10px;padding:11px 14px;font-weight:850}.review-btn.pot{color:#98f0b6}.review-btn.scratch{color:#ffaba6}@media(max-width:760px){.vision-review{align-items:flex-start;flex-direction:column}}
+
+body.calibrating #overlay{touch-action:none!important;-webkit-user-select:none;user-select:none;}

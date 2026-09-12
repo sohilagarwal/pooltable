@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PoolCam Calibration Test</title>
+<style>html,body{margin:0;background:#07110c;color:#fff;font-family:-apple-system,sans-serif}main{max-width:900px;margin:auto;padding:14px}.stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden}video,#overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}#overlay{pointer-events:none;z-index:5}body.calibrating #overlay{pointer-events:auto!important;z-index:20}.hidden{display:none!important}.row{display:flex;gap:8px;margin:12px 0}.row button{flex:1;padding:14px;border:0;border-radius:12px;font-weight:800;font-size:17px}.green{background:#22b765;color:#fff}.blue{background:#3268c9;color:#fff}.status{padding:12px;background:#142018;border-radius:12px;margin:10px 0;white-space:pre-wrap}.cal-guide{position:fixed;z-index:50;top:80px;left:12px;right:12px;background:#17311f;border:1px solid #3d7651;border-radius:12px;padding:12px;pointer-events:none}.cal-guide span,.cal-guide strong{display:block}.cal-guide button{pointer-events:auto;position:absolute;right:8px;top:8px}</style></head><body><main>
+<h2>PoolCam Calibration Test v1</h2><div id="appStatus" class="status">1. Start camera.</div><div id="setupWarning" class="status">This page tests only camera + four calibration taps. No OpenCV.</div>
+<div id="videoStage" class="stage"><video id="video" autoplay playsinline muted></video><canvas id="overlay"></canvas><div id="emptyCamera"></div></div>
+<div class="row"><button id="startCameraBtn" class="green">Start Rear Camera</button><button id="calibrateBtn" class="blue" disabled>Calibrate</button></div>
+<div id="result" class="status">No calibration yet.</div>
+<div id="calGuide" class="cal-guide hidden"><strong id="calInstruction">Tap top-left cloth corner</strong><span>Tap directly on the live video.</span><span id="calTapStatus">0/4 corners captured</span><button id="cancelCal">Cancel</button></div>
+</main><script src="./camera.js"></script><script src="./calibration.js"></script><script>
+let stream=null;const $=id=>document.getElementById(id);
+window.addEventListener('poolcam-camera-ready',e=>{stream=e.detail.stream;$('calibrateBtn').disabled=false;$('result').textContent='Camera works. Tap Calibrate.';setTimeout(()=>PoolCamCalibration.draw(),100)});
+$('calibrateBtn').onclick=()=>PoolCamCalibration.start();$('cancelCal').onclick=()=>PoolCamCalibration.cancel();
+window.addEventListener('poolcam-calibration-point',e=>{$('result').textContent=`Captured corner ${e.detail.index}: ${JSON.stringify(e.detail.point)}`});
+window.addEventListener('poolcam-calibration-complete',e=>{$('result').textContent='SUCCESS: 4 corners captured. '+JSON.stringify(e.detail.points)});
+</script></body></html>
