@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PoolCam">
+<meta name="theme-color" content="#0a1712">
+<title>PoolCam</title>
+<style>
+:root{
+  --bg:#08130f; --panel:#0f231b; --panel2:#153126; --line:#234538; --text:#ecf4ef; --mute:#8db2a2;
+  --accent:#e9c46a; --pot:#3ecf8e; --miss:#ef6f6c; --safe:#6aa9ff; --foul:#f4a261; --rec:#ff4d4d;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh;
+  background:radial-gradient(1200px 600px at 70% -10%,#13392a 0%,transparent 60%),var(--bg);}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select{font:inherit;color:var(--text);background:#0a1a14;border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+input[type=color]{padding:2px;height:42px;width:64px}
+input[type=range]{padding:0}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.01em}
+h2{font-size:20px}h3{font-size:16px}
+.num{font-variant-numeric:tabular-nums}
+.mute{color:var(--mute)}
+.small{font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.stack>*+*{margin-top:12px}
+.btn{background:#1b3c2f;border:1px solid #2c5646;border-radius:12px;padding:10px 14px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;user-select:none;-webkit-user-select:none}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:#1d1606;border-color:#f3d58a}
+.btn.ghost{background:transparent}
+.btn.danger{background:#3a1b1b;border-color:#6b2c2c;color:#ffb3b1}
+.btn.sm{min-height:34px;padding:6px 10px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:#0c1d16;font-size:14px;font-weight:600;min-height:36px}
+.chip.on{background:var(--accent);color:#1d1606;border-color:var(--accent)}
+.seg{display:inline-flex;background:#0a1a14;border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{padding:8px 12px;border-radius:9px;font-weight:600;color:var(--mute);min-height:38px}
+.seg button.on{background:#244c3c;color:var(--text)}
+label.f{display:block;font-size:13px;color:var(--mute);margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+/* header */
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;position:sticky;top:0;z-index:20;background:rgba(8,19,15,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px}
+.logo .ball{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 18%,#111 19% 100%);box-shadow:inset -3px -3px 6px rgba(0,0,0,.5)}
+nav{display:flex;gap:4px;margin-left:auto;overflow-x:auto}
+nav button{padding:8px 12px;border-radius:10px;color:var(--mute);font-weight:600;white-space:nowrap}
+nav button.on{background:#1a3a2e;color:var(--text)}
+main{padding:14px 16px 40px;max-width:1400px;margin:0 auto}
+section.tab{display:none}section.tab.on{display:block}
+
+/* setup */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left;background:#0b1c15}
+.tile.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(233,196,106,.25) inset}
+.tile b{display:block;font-size:15px;margin-bottom:2px}
+.ord{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#1d1606;color:var(--accent);font-size:12px}
+
+/* live */
+.live{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(330px,1fr);gap:12px;align-items:start}
+@media (max-width:860px){.live{grid-template-columns:1fr}.tiles{grid-template-columns:1fr}}
+.vbox{position:relative;background:#000;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;border:1px solid var(--line)}
+.vbox video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.vbox canvas#ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.vbox.calib canvas#ov{pointer-events:auto;cursor:crosshair}
+.vbadge{position:absolute;top:10px;left:10px;display:flex;gap:6px;align-items:center;z-index:2}
+.pill{background:rgba(0,0,0,.6);border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--rec);animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.meter{position:absolute;right:10px;top:10px;width:90px;height:8px;border-radius:5px;background:rgba(255,255,255,.15);overflow:hidden;z-index:2}
+.meter i{display:block;height:100%;width:0;background:var(--pot);transition:width .2s}
+.novideo{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--mute)}
+.calibtip{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:8px 14px;border-radius:12px;font-weight:600;z-index:3;text-align:center}
+.clipbtn{background:linear-gradient(180deg,#f2d27e,#d9ae45);color:#1d1606;font-weight:800;font-size:18px;border-radius:14px;min-height:56px;flex:1}
+.clipbtn:active{transform:scale(.98)}
+.flash{animation:flash .6s}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(233,196,106,.9)}100%{box-shadow:0 0 0 22px rgba(233,196,106,0)}}
+
+.players{display:grid;gap:8px}
+.pcard{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:#0c1d16;border:1px solid var(--line);position:relative}
+.pcard.cur{border-color:var(--accent);background:linear-gradient(90deg,rgba(233,196,106,.16),#0c1d16 70%)}
+.pcard .score{margin-left:auto;font-size:38px;font-weight:800;line-height:1}
+.pcard .tag{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--accent)}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#0b1510;flex:none;background-size:cover;background-position:center;border:2px solid rgba(255,255,255,.2)}
+.av.lg{width:64px;height:64px;font-size:22px}
+.pad{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.act{border-radius:14px;min-height:74px;font-size:20px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid rgba(255,255,255,.08);user-select:none;-webkit-user-select:none}
+.act small{font-size:12px;font-weight:600;opacity:.8}
+.act:active{transform:scale(.97)}
+.act.pot{background:#14432f;color:#9ff0c9}.act.miss{background:#45201f;color:#ffb3b1}
+.act.safe{background:#182f4f;color:#b9d6ff}.act.foul{background:#47301a;color:#ffd3a6}
+.act.neutral{background:#1b3c2f}
+.act.suggest{outline:3px solid var(--accent);animation:pulse 1s infinite}
+@keyframes pulse{50%{outline-color:transparent}}
+.feed{max-height:230px;overflow:auto;display:grid;gap:4px}
+.ev{display:flex;gap:10px;align-items:center;font-size:14px;padding:6px 8px;border-radius:9px;background:#0b1a14}
+.ev .t{color:var(--mute);width:48px;flex:none}
+.banner{border-radius:14px;padding:12px 14px;background:linear-gradient(90deg,#3b2f0e,#1a2a1f);border:1px solid #6b5520}
+.hint{border-radius:12px;padding:10px 12px;background:#132a3e;border:1px solid #23496b;display:flex;gap:8px;align-items:center;justify-content:space-between}
+
+/* tables / stats */
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:8px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+th:first-child,td:first-child{text-align:left}
+.tscroll{overflow-x:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{background:#0b1c15;border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi b{display:block;font-size:24px}
+.kpi span{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:#0a1712}
+.bar i{display:block;height:100%}
+.hl{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:#0b1c15;border:1px solid var(--line)}
+.hl .play{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#1d1606;display:grid;place-items:center;font-weight:900;flex:none}
+.list{display:grid;gap:8px}
+.insight{padding:10px 12px;border-left:3px solid var(--accent);background:#0b1c15;border-radius:0 10px 10px 0}
+.winner{font-size:26px;font-weight:800}
+.racks{display:flex;gap:4px;flex-wrap:wrap}
+.rk{min-width:34px;padding:4px 6px;border-radius:8px;text-align:center;font-size:12px;font-weight:800;color:#0b1510}
+
+/* modal, toast, bigboard */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modal.open{display:flex}
+#modal .sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:640px;width:100%;max-height:90vh;overflow:auto}
+#modal video{width:100%;border-radius:12px;background:#000;margin:10px 0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(120px);background:#f4ecd6;color:#1d1606;font-weight:700;padding:10px 16px;border-radius:12px;z-index:60;transition:transform .25s;max-width:90vw;text-align:center}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#bigboard{position:fixed;inset:0;background:#06100c;z-index:40;display:none;flex-direction:column;padding:24px;padding-top:calc(24px + env(safe-area-inset-top))}
+#bigboard.on{display:flex}
+.bbrow{flex:1;display:flex;align-items:center;gap:24px;padding:0 24px;border-radius:24px;margin:6px 0;border:2px solid transparent}
+.bbrow.cur{border-color:var(--accent);background:rgba(233,196,106,.08)}
+.bbrow .nm{font-size:min(7vw,64px);font-weight:800}
+.bbrow .sc{margin-left:auto;font-size:min(16vw,150px);font-weight:900;font-variant-numeric:tabular-nums}
+.dim{position:fixed;inset:0;background:#000;z-index:45;display:none;color:#333;place-items:center;font-weight:700}
+.dim.on{display:grid}
+.help li{margin:6px 0}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="ball"></div>PoolCam</div>
+  <nav id="nav">
+    <button data-tab="play" class="on">Play</button>
+    <button data-tab="players">Players</button>
+    <button data-tab="history">History</button>
+    <button data-tab="stats">Stats</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <section class="tab on" id="tab-play">
+    <div id="setup"></div>
+    <div id="liveWrap" style="display:none">
+      <div class="live">
+        <div class="stack">
+          <div class="vbox" id="vbox">
+            <video id="vid" playsinline muted autoplay></video>
+            <canvas id="ov"></canvas>
+            <div class="vbadge"><span class="pill" id="recPill"><span class="dot"></span><span id="clock" class="num">0:00</span></span><span class="pill" id="rackPill">Rack 1</span></div>
+            <div class="meter" id="meter" title="Table motion"><i></i></div>
+            <div class="novideo" id="novideo" style="display:none"></div>
+            <div class="calibtip" id="calibtip" style="display:none"></div>
+          </div>
+          <div class="row">
+            <button class="clipbtn" id="clipBtn" data-act="clip">★ Clip that!</button>
+          </div>
+          <div class="row">
+            <button class="btn sm" data-act="bigboard">⛶ Big scoreboard</button>
+            <button class="btn sm" data-act="calibrate" id="calBtn">⌖ Calibrate table</button>
+            <button class="btn sm" data-act="dim">◐ Dim screen</button>
+            <button class="btn sm danger" data-act="endSession" style="margin-left:auto">■ End session</button>
+          </div>
+          <div class="card">
+            <div class="spread"><h3>Timeline</h3><span class="small mute" id="feedMeta"></span></div>
+            <div class="feed" id="feed" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div id="matchBanner"></div>
+          <div id="hintBox"></div>
+          <div class="players" id="scoreboard"></div>
+          <div class="card stack" id="padCard"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-players"></section>
+  <section class="tab" id="tab-history"></section>
+  <section class="tab" id="tab-stats"></section>
+  <section class="tab" id="tab-settings"></section>
+  <section class="tab" id="tab-report"></section>
+</main>
+
+<div id="modal"></div>
+<div id="toast"></div>
+<div id="bigboard" data-act="closeBig"></div>
+<div class="dim" id="dim" data-act="undim">Tap to wake · still recording</div>
+<input type="file" id="fileVideo" accept="video/*" hidden>
+<input type="file" id="fileImport" accept="application/json,.json" hidden>
+<input type="file" id="filePhoto" accept="image/*" hidden>
+<canvas id="mcan" width="96" height="54" hidden></canvas>
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const uid=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-5);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtT=ms=>{ms=Math.max(0,ms|0);const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(ss).padStart(2,'0')};
+const fmtDur=ms=>{const m=Math.round(ms/60000);return m<60?m+' min':Math.floor(m/60)+'h '+(m%60)+'m'};
+const pct=(a,b)=>b?Math.round(100*a/b)+'%':'–';
+const fmtDate=iso=>{const d=new Date(iso);return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})};
+const GAMES={'8ball':'8-Ball','9ball':'9-Ball','10ball':'10-Ball','straight':'Straight pool'};
+const COLORS=['#e9c46a','#4cc9f0','#f72585','#80ed99','#ff9f1c','#b388ff','#ff6b6b','#2ec4b6'];
+const TAGS=['Cut','Bank','Combo','Kick','Long','Thin','Rail','Jump'];
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600)}
+
+/* ---------- storage (IndexedDB with memory fallback) ---------- */
+const Store={db:null,mem:{kv:new Map(),seg:new Map()},
+  async open(){try{this.db=await new Promise((res,rej)=>{const r=indexedDB.open('poolcam',1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv');if(!d.objectStoreNames.contains('seg'))d.createObjectStore('seg')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.db=null}},
+  _tx(store,mode,fn){return new Promise((res,rej)=>{const t=this.db.transaction(store,mode);const r=fn(t.objectStore(store));t.oncomplete=()=>res(r?r.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})},
+  async get(k,store='kv'){if(this.db){try{const v=await this._tx(store,'readonly',s=>s.get(k));if(v!==undefined)return v}catch(e){}}return this.mem[store].get(k)},
+  async set(k,v,store='kv'){if(this.db){try{await this._tx(store,'readwrite',s=>s.put(v,k));return true}catch(e){if(store==='seg')toast('Storage is full — clip not saved')}}this.mem[store].set(k,v);return false},
+  async del(k,store='kv'){if(this.db){try{await this._tx(store,'readwrite',s=>s.delete(k))}catch(e){}}this.mem[store].delete(k)},
+  async clear(){if(this.db){try{await this._tx('kv','readwrite',s=>s.clear());await this._tx('seg','readwrite',s=>s.clear())}catch(e){}}this.mem.kv.clear();this.mem.seg.clear()}
+};
+
+/* ---------- app data ---------- */
+const DEFAULTS={emails:'',segSec:90,pre:15,post:5,quality:2500000,keepFull:false,autoClip:true,motion:true,sens:5,audio:false,calib:null,shooterHint:true,autoEmail:true,lastSetup:null};
+let players=[], settings={...DEFAULTS}, index=[]; const SESS=new Map();
+async function loadAll(){
+  players=(await Store.get('players'))||[];
+  settings={...DEFAULTS,...((await Store.get('settings'))||{})};
+  index=(await Store.get('index'))||[];
+}
+const savePlayers=()=>Store.set('players',players);
+const saveSettings=()=>Store.set('settings',settings);
+const saveIndex=()=>Store.set('index',index);
+async function loadSession(id){if(SESS.has(id))return SESS.get(id);const s=await Store.get('session:'+id);if(s)SESS.set(id,s);return s}
+async function saveSession(s){SESS.set(s.id,s);await Store.set('session:'+s.id,JSON.parse(JSON.stringify(s)))}
+async function allSessions(){const out=[];for(const it of index){const s=await loadSession(it.id);if(s&&s.endedAt)out.push(s)}return out}
+const P=id=>players.find(p=>p.id===id)||{id,name:'Guest',color:'#888'};
+function avatar(p,cls=''){const st=p.photo?`background-image:url(${p.photo});`:`background:${p.color};`;return `<div class="av ${cls}" style="${st}">${p.photo?'':esc((p.name||'?')[0].toUpperCase())}</div>`}
+
+/* ---------- live session state ---------- */
+let S=null;
+const L={stream:null,rec:null,segTimer:null,clockT:null,motionT:null,wake:null,file:null,fileUrl:null,calibPts:null,modalUrls:[],hintT:null,suggestT:null};
+const vid=$('#vid');
+function nowFor(s){if(!s)return 0;if(s.mode==='file')return Math.round((vid.currentTime||0)*1000);return Date.now()-s.startedAt}
+const now=()=>nowFor(S);
+
+/* Replay events -> current game state (makes undo trivial) */
+function replay(s){
+  const n=s.playerIds.length, straight=s.gameType==='straight';
+  const st={breaker:0,shooter:0,rack:1,needBreak:!straight||true,bih:false,run:0,scores:{},matchOver:false,winner:null};
+  s.playerIds.forEach(p=>st.scores[p]=0);
+  const next=()=>{st.shooter=(st.shooter+1)%n;st.run=0};
+  const check=pid=>{if(s.raceTo&&st.scores[pid]>=s.raceTo&&!st.matchOver){st.matchOver=true;st.winner=pid}};
+  for(const e of s.events){
+    switch(e.type){
+      case 'break': st.needBreak=false;st.bih=false;
+        if(e.result==='made'){st.run=e.balls||1;if(straight){st.scores[e.player]+=e.balls||1;check(e.player)}}
+        else{if(straight&&e.result==='foul')st.scores[e.player]-=1;next();if(e.result==='foul')st.bih=true}
+        break;
+      case 'pot': st.run+=e.balls||1;st.bih=false;if(straight){st.scores[e.player]+=e.balls||1;check(e.player)}break;
+      case 'miss': case 'safety': next();st.bih=false;break;
+      case 'foul': if(straight)st.scores[e.player]-=1;next();st.bih=true;break;
+      case 'switch': st.shooter=e.to;st.run=0;st.bih=false;break;
+      case 'rack': {
+        st.scores[e.winner]=(st.scores[e.winner]||0)+1;check(e.winner);
+        const wi=s.playerIds.indexOf(e.winner);
+        st.breaker=s.breakRule==='winner'&&wi>=0?wi:(st.breaker+1)%n;
+        st.rack++;st.needBreak=true;st.shooter=st.breaker;st.run=0;st.bih=false;break;}
+    }
+  }
+  return st;
+}
+const curPid=()=>S?S.playerIds[replay(S).shooter]:null;
+
+/* ---------- logging ---------- */
+let saveT;
+function persist(){clearTimeout(saveT);saveT=setTimeout(()=>{if(S)saveSession(S)},400)}
+function log(type,extra={}){
+  if(!S)return;
+  const st=replay(S);
+  const e={id:uid(),type,t:now(),player:S.playerIds[st.shooter],rack:st.rack,...extra};
+  S.events.push(e);
+  clearSuggest();
+  const after=replay(S);
+  // automatic highlights for big moments
+  if(settings.autoClip){
+    const name=P(e.player).name;
+    if((type==='pot'||(type==='break'&&e.result==='made'))&&after.run>=5&&(after.run===5||after.run%5===0))addHighlight(`${name} — run of ${after.run}`,true,e.player,e.rack);
+    if(type==='rack'){
+      const w=P(e.winner).name;
+      if(e.how==='break')addHighlight(`${w} wins on the break!`,true,e.winner,e.rack);
+      else if(isBreakAndRun(S,e))addHighlight(`${w} — break & run!`,true,e.winner,e.rack);
+      else addHighlight(`${w} wins rack ${e.rack}`,true,e.winner,e.rack);
+    }
+  }
+  if(!st.matchOver&&after.matchOver)toast(`🏆 ${P(after.winner).name} wins the match!`);
+  persist();renderLive();
+}
+function isBreakAndRun(s,rackEv){
+  const evs=s.events.filter(x=>x.rack===rackEv.rack&&x.type!=='rack'&&x.type!=='switch');
+  if(!evs.length||evs[0].type!=='break'||evs[0].result!=='made'||evs[0].player!==rackEv.winner)return false;
+  return evs.slice(1).every(x=>x.type==='pot'&&x.player===rackEv.winner);
+}
+function lastShot(){if(!S)return null;for(let i=S.events.length-1;i>=0;i--){const e=S.events[i];if(['pot','miss','break','safety','foul'].includes(e.type))return e;if(e.type==='rack')return null}return null}
+function addHighlight(label,auto=false,player,rack){
+  if(!S)return;const t=now();
+  const h={id:uid(),t,start:Math.max(0,t-settings.pre*1000),end:t+settings.post*1000,label,auto,player:player||curPid(),rack:rack||replay(S).rack};
+  S.highlights.push(h);persist();
+  const b=$('#clipBtn');b.classList.remove('flash');void b.offsetWidth;b.classList.add('flash');
+  toast('★ '+label);renderFeed();
+}
+
+/* ---------- recording (rolling self-contained segments) ---------- */
+function pickMime(){if(!window.MediaRecorder)return null;for(const m of['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']){try{if(MediaRecorder.isTypeSupported(m))return m}catch(e){}}return ''}
+function startSegment(){
+  const sess=S;if(!L.stream||!sess)return;
+  const mime=pickMime();if(mime===null){toast('This browser can’t record video — scoring still works');return}
+  let rec;try{const o={videoBitsPerSecond:+settings.quality};if(mime)o.mimeType=mime;rec=new MediaRecorder(L.stream,o)}catch(e){toast('Recording not available here');return}
+  const seg={id:uid(),start:nowFor(sess),chunks:[],mime:rec.mimeType||mime||'video/mp4'};
+  rec.ondataavailable=ev=>{if(ev.data&&ev.data.size)seg.chunks.push(ev.data)};
+  rec._done=new Promise(res=>{rec.onstop=async()=>{
+    const end=nowFor(sess);const blob=new Blob(seg.chunks,{type:seg.mime});seg.chunks=[];
+    if(blob.size){await Store.set(seg.id,{blob,mime:seg.mime},'seg');sess.segments.push({id:seg.id,start:seg.start,end,mime:seg.mime,size:blob.size});await saveSession(sess)}
+    res();}});
+  try{rec.start()}catch(e){toast('Could not start recording');return}
+  L.rec=rec;$('#recPill').querySelector('.dot').style.display='';
+  L.segTimer=setTimeout(()=>{if(L.rec===rec&&S===sess){rec.stop();startSegment()}},settings.segSec*1000);
+}
+async function stopRecording(){clearTimeout(L.segTimer);const r=L.rec;L.rec=null;if(r&&r.state!=='inactive'){r.stop();await r._done}else if(r&&r._done){await Promise.race([r._done,new Promise(x=>setTimeout(x,1500))])}}
+async function startCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('nocam');
+  L.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:!!settings.audio});
+  vid.srcObject=L.stream;vid.muted=true;vid.controls=false;await vid.play().catch(()=>{});
+}
+async function keepAwake(){try{if('wakeLock' in navigator)L.wake=await navigator.wakeLock.request('screen')}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S&&S.mode==='camera')keepAwake()});
+
+/* ---------- motion / shot detection (tiny frames, ~5 fps) ---------- */
+const MW=96,MH=54;const mctx=$('#mcan').getContext('2d',{willReadFrequently:true});
+let prevGray=null,mask=null,pocketMask=null;
+const M={state:'still',mov:0,still:0,start:0,pocket:0,col:[0,0,0,0]};
+function pocketsOf(c){const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];const ar=(vid.videoHeight||9)/(vid.videoWidth||16);const d=(a,b)=>Math.hypot(a[0]-b[0],(a[1]-b[1])*ar);return d(c[0],c[1])>=d(c[1],c[2])?[...c,mid(c[0],c[1]),mid(c[3],c[2])]:[...c,mid(c[1],c[2]),mid(c[0],c[3])]}
+function inPoly(poly,x,y){let ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[xi,yi]=poly[i],[xj,yj]=poly[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins}return ins}
+function buildMasks(){
+  mask=new Uint8Array(MW*MH);pocketMask=new Uint8Array(MW*MH);const c=settings.calib;
+  if(!c){mask.fill(1);return}
+  const poly=c.map(p=>[p[0]*MW,p[1]*MH]);const pk=pocketsOf(c).map(p=>[p[0]*MW,p[1]*MH]);const r=MW*0.05;
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const i=y*MW+x;if(inPoly(poly,x+.5,y+.5))mask[i]=1;for(const q of pk)if(Math.hypot(q[0]-x-.5,q[1]-y-.5)<r){pocketMask[i]=1;break}}
+}
+function motionTick(){
+  if(!S||!settings.motion||!vid.videoWidth||(S.mode==='file'&&vid.paused))return;
+  if(!mask)buildMasks();
+  let d;try{mctx.drawImage(vid,0,0,MW,MH);d=mctx.getImageData(0,0,MW,MH).data}catch(e){return}
+  const g=new Uint8Array(MW*MH);let act=0,tot=0,pk=0,oR=0,oG=0,oB=0,oN=0;
+  for(let i=0;i<MW*MH;i++){const r=d[i*4],gg=d[i*4+1],b=d[i*4+2];const v=(r*3+gg*6+b)/10|0;g[i]=v;
+    if(prevGray){const ch=Math.abs(v-prevGray[i])>28;if(mask[i]){tot++;if(ch)act++}if(ch&&pocketMask[i])pk++;if(ch&&!mask[i]){oR+=r;oG+=gg;oB+=b;oN++}}}
+  prevGray=g;if(!tot)return;
+  const level=act/tot;$('#meter i').style.width=Math.min(100,level*900)+'%';
+  const thr=0.02*(11-settings.sens)/10;
+  if(level>thr){M.mov++;M.still=0;
+    if(M.state==='still'&&M.mov>=2){M.state='moving';M.start=now();M.pocket=0;M.col=[0,0,0,0]}
+    if(M.state==='moving'){M.pocket+=pk;if(oN>20&&now()-M.start<2500){M.col[0]+=oR/oN;M.col[1]+=oG/oN;M.col[2]+=oB/oN;M.col[3]++}}
+  }else{M.still++;M.mov=0;
+    if(M.state==='moving'&&M.still>=8){M.state='still';const dur=now()-M.start-1600;if(dur>500)onShotDetected(M.pocket,M.col[3]?[M.col[0]/M.col[3],M.col[1]/M.col[3],M.col[2]/M.col[3]]:null)}}
+}
+function onShotDetected(pocketHits,color){
+  if(!S)return;S.autoShots=(S.autoShots||0)+1;
+  const st=replay(S);
+  if(!st.needBreak){const btn=$(pocketHits>(settings.calib?6:9999)?'[data-act="pot"]':'[data-act="miss"]');
+    clearSuggest();if(btn){btn.classList.add('suggest');L.suggestT=setTimeout(clearSuggest,9000)}}
+  if(settings.shooterHint&&color){const cand=S.playerIds.map(id=>({id,c:P(id).shirt})).filter(x=>x.c).map(x=>({id:x.id,d:Math.hypot(x.c[0]-color[0],x.c[1]-color[1],x.c[2]-color[2])})).sort((a,b)=>a.d-b.d);
+    if(cand.length&&cand[0].id!==S.playerIds[st.shooter]&&cand[0].d<70&&(!cand[1]||cand[1].d-cand[0].d>25)){
+      $('#hintBox').innerHTML=`<div class="hint"><span>👀 Looks like <b>${esc(P(cand[0].id).name)}</b> is shooting</span><span class="row"><button class="btn sm" data-act="switchTo" data-arg="${cand[0].id}">Switch</button><button class="btn sm ghost" data-act="hideHint">✕</button></span></div>`;
+      clearTimeout(L.hintT);L.hintT=setTimeout(()=>$('#hintBox').innerHTML='',12000)}}
+}
+function clearSuggest(){clearTimeout(L.suggestT);$$('.suggest').forEach(b=>b.classList.remove('suggest'))}
+
+/* ---------- overlay / calibration ---------- */
+const ov=$('#ov'),octx=ov.getContext('2d');
+function contentRect(){const b=ov.getBoundingClientRect();const vw=vid.videoWidth||16,vh=vid.videoHeight||9;const sc=Math.min(b.width/vw,b.height/vh);const w=vw*sc,h=vh*sc;return{x:(b.width-w)/2,y:(b.height-h)/2,w,h,bw:b.width,bh:b.height}}
+function drawOverlay(){
+  const r=contentRect();const dpr=window.devicePixelRatio||1;ov.width=r.bw*dpr;ov.height=r.bh*dpr;octx.setTransform(dpr,0,0,dpr,0,0);octx.clearRect(0,0,r.bw,r.bh);
+  const pts=L.calibPts||settings.calib;if(!pts||!pts.length)return;
+  const m=p=>[r.x+p[0]*r.w,r.y+p[1]*r.h];
+  octx.strokeStyle='rgba(233,196,106,.9)';octx.lineWidth=2;octx.setLineDash(L.calibPts?[6,6]:[]);
+  octx.beginPath();pts.forEach((p,i)=>{const[x,y]=m(p);i?octx.lineTo(x,y):octx.moveTo(x,y)});if(pts.length===4)octx.closePath();octx.stroke();
+  const pk=pts.length===4?pocketsOf(pts):pts;
+  pk.forEach(p=>{const[x,y]=m(p);octx.beginPath();octx.arc(x,y,Math.max(8,r.w*0.022),0,7);octx.fillStyle='rgba(233,196,106,.25)';octx.fill();octx.stroke()});
+}
+window.addEventListener('resize',()=>{if(S)drawOverlay()});
+vid.addEventListener('loadedmetadata',()=>{drawOverlay();mask=null});
+ov.addEventListener('click',e=>{
+  if(!L.calibPts)return;const r=contentRect();const b=ov.getBoundingClientRect();
+  const x=(e.clientX-b.left-r.x)/r.w,y=(e.clientY-b.top-r.y)/r.h;if(x<0||x>1||y<0||y>1)return;
+  L.calibPts.push([+x.toFixed(4),+y.toFixed(4)]);drawOverlay();
+  const names=['top-left','top-right','bottom-right','bottom-left'];
+  if(L.calibPts.length<4)$('#calibtip').textContent=`Tap the ${names[L.calibPts.length]} corner pocket`;
+  else{settings.calib=L.calibPts;L.calibPts=null;saveSettings();mask=null;prevGray=null;$('#vbox').classList.remove('calib');$('#calibtip').style.display='none';drawOverlay();toast('Table calibrated — pockets mapped')}
+});
+
+/* ---------- setup ---------- */
+const SETUP={players:[],game:'8ball',raceTo:5,breakRule:'alternate',source:'camera'};
+function initSetup(){const ls=settings.lastSetup;if(ls){Object.assign(SETUP,ls);SETUP.players=(ls.players||[]).filter(id=>players.some(p=>p.id===id))}}
+async function renderSetup(){
+  const el=$('#setup');let resume='';
+  const activeId=await Store.get('active');
+  if(activeId&&!S){const a=await loadSession(activeId);if(a&&!a.endedAt){const st=replay(a);resume=`<div class="banner spread" style="margin-bottom:12px"><div><b>Unfinished session</b> · ${esc(GAMES[a.gameType])} · ${a.playerIds.map(id=>esc(P(id).name)+' '+st.scores[id]).join(' – ')}</div><div class="row"><button class="btn sm primary" data-act="resume" data-arg="camera">Resume with camera</button><button class="btn sm" data-act="resume" data-arg="none">Resume scoring only</button><button class="btn sm danger" data-act="finishOld">End it</button></div></div>`}}
+  const isStraight=SETUP.game==='straight';
+  el.innerHTML=`${resume}<div class="card stack" style="max-width:860px;margin:0 auto">
+    <div class="spread"><h2>New session</h2><span class="mute small">${esc(new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}))}</span></div>
+    <div><label class="f">Who’s playing? <span style="text-transform:none;font-weight:500">(tap in break order)</span></label>
+      <div class="row">${players.map(p=>{const i=SETUP.players.indexOf(p.id);return `<button class="chip ${i>=0?'on':''}" data-act="selPlayer" data-arg="${p.id}">${i>=0?`<span class="ord">${i+1}</span>`:''}${esc(p.name)}</button>`}).join('')}
+      <span class="row" style="flex:1;min-width:220px"><input id="quickName" placeholder="Add a player…" style="flex:1;width:auto"><button class="btn" data-act="quickAdd">＋ Add</button></span></div></div>
+    <div class="grid2">
+      <div><label class="f">Game</label><div class="seg">${Object.entries(GAMES).map(([k,v])=>`<button class="${SETUP.game===k?'on':''}" data-act="setGame" data-arg="${k}">${v}</button>`).join('')}</div></div>
+      <div><label class="f">${isStraight?'Play to (points)':'Race to (racks)'}</label><div class="row"><button class="btn" data-act="race" data-arg="-1">−</button><b class="num" style="font-size:22px;min-width:44px;text-align:center">${SETUP.raceTo||'∞'}</b><button class="btn" data-act="race" data-arg="1">+</button><span class="mute small">0 = no limit</span></div></div>
+    </div>
+    ${isStraight?'':`<div><label class="f">Who breaks next rack</label><div class="seg"><button class="${SETUP.breakRule==='alternate'?'on':''}" data-act="setBreak" data-arg="alternate">Alternate breaks</button><button class="${SETUP.breakRule==='winner'?'on':''}" data-act="setBreak" data-arg="winner">Winner breaks</button></div></div>`}
+    <div><label class="f">Video source</label><div class="tiles">
+      <button class="tile ${SETUP.source==='camera'?'on':''}" data-act="setSource" data-arg="camera"><b>📷 iPad camera</b><span class="small mute">Record live, auto-detect shots, clip highlights</span></button>
+      <button class="tile ${SETUP.source==='file'?'on':''}" data-act="setSource" data-arg="file"><b>🎞 Video file</b><span class="small mute">Score a game you already filmed</span></button>
+      <button class="tile ${SETUP.source==='none'?'on':''}" data-act="setSource" data-arg="none"><b>🔢 Scoreboard only</b><span class="small mute">Stats without video</span></button>
+    </div></div>
+    <button class="btn primary" style="width:100%;min-height:54px;font-size:18px" data-act="start" ${SETUP.players.length?'':'disabled'}>Rack ’em up →</button>
+    ${players.length?'':'<p class="mute small" style="margin:0">Add at least one player to start. Solo practice works too.</p>'}
+  </div>`;
+  const q=$('#quickName');if(q)q.addEventListener('keydown',e=>{if(e.key==='Enter')ACT.quickAdd()});
+}
+
+/* ---------- session lifecycle ---------- */
+async function startSession(source,file){
+  settings.lastSetup={...SETUP};saveSettings();
+  S={id:uid(),date:new Date().toISOString(),startedAt:Date.now(),gameType:SETUP.game,raceTo:SETUP.raceTo,breakRule:SETUP.breakRule,playerIds:[...SETUP.players],mode:source,events:[],highlights:[],segments:[],autoShots:0};
+  await beginLive(source,file);
+  await saveSession(S);await Store.set('active',S.id);
+}
+async function beginLive(source,file){
+  $('#setup').style.display='none';$('#liveWrap').style.display='';
+  $('#novideo').style.display='none';vid.style.display='';vid.controls=false;$('#recPill').querySelector('.dot').style.display='none';
+  S.mode=source;
+  if(source==='camera'){
+    try{await startCamera();startSegment();keepAwake()}
+    catch(e){S.mode='none';showNoVideo('Camera isn’t available here.<br><span class="small">Open PoolCam from its own web address in Safari to use the camera (see Settings → iPad setup). Scoring works fine meanwhile.</span>')}
+  }else if(source==='file'&&file){
+    L.file=file;L.fileUrl=URL.createObjectURL(file);vid.srcObject=null;vid.src=L.fileUrl;vid.controls=true;vid.muted=false;S.fileName=file.name;
+  }else{S.mode='none';showNoVideo('Scoreboard-only session<br><span class="small">Tap the buttons on the right to log every shot.</span>')}
+  prevGray=null;mask=null;M.state='still';
+  clearInterval(L.clockT);L.clockT=setInterval(()=>{$('#clock').textContent=fmtT(now())},500);
+  clearInterval(L.motionT);if(S.mode!=='none')L.motionT=setInterval(motionTick,200);
+  $('#calBtn').style.display=S.mode==='none'?'none':'';$('#meter').style.display=S.mode==='none'||!settings.motion?'none':'';
+  renderLive();setTimeout(drawOverlay,300);
+}
+function showNoVideo(html){vid.style.display='none';const n=$('#novideo');n.innerHTML=`<div>${html}</div>`;n.style.display='grid'}
+function stopMedia(){
+  clearInterval(L.clockT);clearInterval(L.motionT);
+  if(L.stream){L.stream.getTracks().forEach(t=>t.stop());L.stream=null}
+  vid.pause();vid.srcObject=null;vid.removeAttribute('src');vid.load();
+  if(L.wake){try{L.wake.release()}catch(e){}L.wake=null}
+}
+async function endSession(){
+  if(!S)return;const s=S;
+  s.duration=nowFor(s);
+  await stopRecording();
+  if(s.mode==='file'&&L.file&&s.highlights.length){const id=uid();await Store.set(id,{blob:L.file,mime:L.file.type||'video/mp4'},'seg');s.segments.push({id,start:0,end:Math.round((vid.duration||0)*1000)||s.duration,mime:L.file.type,size:L.file.size,file:true})}
+  stopMedia();if(L.fileUrl){URL.revokeObjectURL(L.fileUrl);L.fileUrl=null}L.file=null;
+  finalize(s);
+  S=null;
+  // keep only video that contains highlights (unless "keep full video")
+  if(!settings.keepFull)for(const g of s.segments){if(!s.highlights.some(h=>g.end>h.start&&g.start<h.end)){await Store.del(g.id,'seg');g.removed=true}}
+  await saveSession(s);
+  if(!index.some(x=>x.id===s.id))index.unshift({id:s.id,date:s.date});await saveIndex();
+  await Store.del('active');
+  $('#liveWrap').style.display='none';$('#setup').style.display='';$('#hintBox').innerHTML='';
+  renderSetup();
+  await openReport(s.id);
+  if(settings.autoEmail&&s.events.length)emailModal(s);
+}
+function finalize(s){
+  s.endedAt=Date.now();if(!s.duration)s.duration=s.endedAt-s.startedAt;
+  const st=replay(s);let winner=st.winner;
+  if(!winner){const sorted=[...s.playerIds].sort((a,b)=>st.scores[b]-st.scores[a]);if(s.playerIds.length>1&&st.scores[sorted[0]]>st.scores[sorted[1]])winner=sorted[0]}
+  s.final={scores:st.scores,winner:winner||null};
+  // Elo
+  s.elo={};
+  if(winner&&s.playerIds.length>1){
+    for(const id of s.playerIds){const p=P(id);if(p.elo==null)p.elo=1200}
+    const W=P(winner);
+    for(const id of s.playerIds){if(id===winner)continue;const O=P(id);const ew=1/(1+Math.pow(10,(O.elo-W.elo)/400));const k=24*(1-ew);
+      s.elo[winner]=(s.elo[winner]||0)+k;s.elo[id]=(s.elo[id]||0)-k;}
+    for(const id in s.elo){const p=players.find(x=>x.id===id);if(p)p.elo=Math.round(p.elo+s.elo[id]);s.elo[id]=Math.round(s.elo[id])}
+    savePlayers();
+  }
+}
+
+/* ---------- live rendering ---------- */
+function renderLive(){
+  if(!S)return;const st=replay(S);const straight=S.gameType==='straight';
+  $('#rackPill').textContent=straight?GAMES.straight:`${GAMES[S.gameType]} · Rack ${st.rack}`;
+  $('#scoreboard').innerHTML=S.playerIds.map((id,i)=>{const p=P(id);const cur=i===st.shooter;
+    return `<div class="pcard ${cur?'cur':''}">${avatar(p)}<div><div style="font-weight:800;font-size:18px">${esc(p.name)}</div>
+      <div class="small mute">${cur?`<span class="tag">● AT THE TABLE</span>${st.run?` · run ${st.run}`:''}${st.bih?' · <b style="color:var(--foul)">ball in hand</b>':''}`:(i===st.breaker&&st.needBreak&&!straight?'breaks next':'&nbsp;')}</div></div>
+      <div class="score num">${st.scores[id]}</div></div>`}).join('')+
+    `<div class="small mute" style="text-align:right">${S.raceTo?(straight?`Playing to ${S.raceTo} points`:`Race to ${S.raceTo}`):'No limit'}</div>`;
+  const ls=lastShot();const name=esc(P(S.playerIds[st.shooter]).name);
+  let pad;
+  if(st.needBreak&&!straight||(straight&&st.needBreak&&S.events.length===0)){
+    pad=`<div class="spread"><h3>${name} to break</h3><span class="small mute">${straight?'':'Rack '+st.rack}</span></div>
+    <div class="pad">
+      <button class="act pot" data-act="brk" data-arg="made">Made ball<small>keeps shooting</small></button>
+      <button class="act miss" data-act="brk" data-arg="dry">Dry break<small>nothing dropped</small></button>
+      <button class="act foul" data-act="brk" data-arg="foul">Scratch / foul<small>ball in hand</small></button>
+      ${straight?'<button class="act neutral" data-act="brk" data-arg="safe">Safe break<small>opening safety</small></button>':`<button class="act neutral" data-act="brk" data-arg="win">Won on break<small>${S.gameType==='8ball'?'8 on the break':'golden break'}</small></button>`}
+    </div>`;
+  }else{
+    pad=`<div class="spread"><h3>${name}’s shot</h3><span class="small mute">${st.run?`Run: ${st.run}`:''}</span></div>
+    <div class="pad">
+      <button class="act pot" data-act="pot">POT<small>made it</small></button>
+      <button class="act miss" data-act="miss">MISS<small>turn over</small></button>
+      <button class="act safe" data-act="safety">SAFETY<small>played safe</small></button>
+      <button class="act foul" data-act="foul">FOUL<small>scratch / bad hit</small></button>
+    </div>`;
+  }
+  const canTag=ls&&(ls.type==='pot'||ls.type==='miss');
+  pad+=`<div><div class="spread"><label class="f" style="margin:0">Last shot ${ls?`· <span style="text-transform:none">${esc(P(ls.player).name)} ${ls.type}${(ls.balls||1)>1?' ×'+ls.balls:''}</span>`:''}</label>
+      ${ls&&(ls.type==='pot'||(ls.type==='break'&&ls.result==='made'))?'<button class="btn sm" data-act="plusBall">+1 ball</button>':''}</div>
+      <div class="row" style="margin-top:6px">${TAGS.map(t=>`<button class="chip ${canTag&&(ls.tags||[]).includes(t)?'on':''}" data-act="tag" data-arg="${t}" ${canTag?'':'disabled style="opacity:.35"'}>${t}</button>`).join('')}</div></div>
+    <div class="row">
+      ${straight?'':'<button class="btn" data-act="rackWon" style="flex:1">🏆 Rack won…</button>'}
+      <button class="btn" data-act="switchModal">⇄ Switch</button>
+      <button class="btn" data-act="undo" ${S.events.length?'':'disabled'}>↶ Undo</button>
+    </div>`;
+  $('#padCard').innerHTML=pad;
+  $('#matchBanner').innerHTML=st.matchOver?`<div class="banner spread"><div><div class="winner">🏆 ${esc(P(st.winner).name)} wins!</div><div class="small mute">${S.playerIds.map(id=>st.scores[id]).join(' – ')} · keep playing or wrap up</div></div><button class="btn primary" data-act="endSession">Finish & email</button></div>`:'';
+  renderFeed();
+  if($('#bigboard').classList.contains('on'))renderBig();
+}
+const EVLABEL={break:'Break',pot:'Pot',miss:'Miss',safety:'Safety',foul:'Foul',rack:'Rack won',switch:'Switch'};
+const EVCOLOR={pot:'var(--pot)',miss:'var(--miss)',safety:'var(--safe)',foul:'var(--foul)',rack:'var(--accent)',break:'#ccc',switch:'#777'};
+function evText(e){
+  if(e.type==='break')return `breaks — ${e.result==='made'?`made ${e.balls||1}`:e.result==='dry'?'dry':e.result==='safe'?'safe':'scratch'}`;
+  if(e.type==='rack')return `wins rack ${e.rack}${e.how&&e.how!=='normal'?` (${HOW[e.how]})`:''}`;
+  if(e.type==='switch')return `now at the table`;
+  return EVLABEL[e.type].toLowerCase()+((e.balls||1)>1?` ×${e.balls}`:'')+(e.kind==='scratch'?' (scratch)':'')+((e.tags||[]).length?' · '+e.tags.join(', '):'');
+}
+function renderFeed(){
+  if(!S)return;
+  const items=[...S.events.map(e=>({t:e.t,html:`<span style="color:${EVCOLOR[e.type]};font-weight:800">●</span> <b>${esc(P(e.type==='rack'?e.winner:e.type==='switch'?S.playerIds[e.to]:e.player).name)}</b> ${esc(evText(e))}`})),
+    ...S.highlights.map(h=>({t:h.t,html:`<span style="color:var(--accent)">★</span> ${esc(h.label)}`}))].sort((a,b)=>b.t-a.t).slice(0,40);
+  $('#feed').innerHTML=items.length?items.map(i=>`<div class="ev"><span class="t num">${fmtT(i.t)}</span><span>${i.html}</span></div>`).join(''):'<div class="mute small">Shots you log appear here.</div>';
+  $('#feedMeta').textContent=`${S.events.filter(e=>['pot','miss','safety','foul'].includes(e.type)).length} shots · ${S.highlights.length} clips`;
+}
+function renderBig(){
+  const st=replay(S);
+  $('#bigboard').innerHTML=`<div class="spread mute" style="font-size:20px;font-weight:700"><span>${esc(GAMES[S.gameType])}${S.gameType==='straight'?'':' · Rack '+st.rack}</span><span>${S.raceTo?'Race to '+S.raceTo:''}</span><span>tap to close</span></div>`+
+    S.playerIds.map((id,i)=>{const p=P(id);return `<div class="bbrow ${i===st.shooter?'cur':''}">${avatar(p,'lg')}<div><div class="nm">${esc(p.name)}</div><div class="mute" style="font-size:22px">${i===st.shooter?(st.run?'Run of '+st.run:'At the table'):''}${i===st.shooter&&st.bih?' · ball in hand':''}</div></div><div class="sc" style="color:${p.color}">${st.scores[id]}</div></div>`}).join('');
+}
+
+/* ---------- stats engine ---------- */
+function blank(){return{shots:0,pots:0,balls:0,misses:0,safeties:0,safetyWins:0,fouls:0,scratches:0,breaks:0,breaksMade:0,breakBalls:0,breakDry:0,breakFouls:0,golden:0,bnr:0,racks:0,racksPlayed:0,turns:0,runsSum:0,runsCount:0,longestRun:0,timeSum:0,timeN:0,tags:{},clips:0,matches:0,wins:0,sessions:0,points:0,maxDeficitWon:0}}
+function sessionStats(s){
+  const R={};s.playerIds.forEach(id=>R[id]=blank());
+  let cur=null,run=0,pendingSafe=null,prevT=null,rackEvs=[];
+  const endTurn=()=>{if(cur&&R[cur]&&run>0){const r=R[cur];r.runsSum+=run;r.runsCount++;r.longestRun=Math.max(r.longestRun,run)}run=0;cur=null};
+  const scores={};s.playerIds.forEach(id=>scores[id]=0);const deficits={};s.playerIds.forEach(id=>deficits[id]=0);
+  for(const e of s.events){
+    const p=R[e.player];
+    if(['break','pot','miss','safety','foul'].includes(e.type)&&p){
+      if(cur!==e.player){endTurn();cur=e.player;p.turns++}
+      if(prevT!=null&&e.type!=='break'){const dt=e.t-prevT;if(dt>1000&&dt<180000){p.timeSum+=dt;p.timeN++}}prevT=e.t;
+      if(pendingSafe&&pendingSafe!==e.player&&e.type!=='break'){if(e.type==='miss'||e.type==='foul')R[pendingSafe].safetyWins++;pendingSafe=null}
+      rackEvs.push(e);
+    }
+    switch(e.type){
+      case 'break':p.breaks++;
+        if(e.result==='made'){p.breaksMade++;p.breakBalls+=e.balls||1;run+=e.balls||1}
+        else if(e.result==='dry'||e.result==='safe'){p.breakDry++;endTurn()}
+        else{p.breakFouls++;p.fouls++;p.scratches++;endTurn()}
+        break;
+      case 'pot':p.shots++;p.pots++;p.balls+=e.balls||1;run+=e.balls||1;(e.tags||[]).forEach(t=>{const x=p.tags[t]||(p.tags[t]={a:0,m:0});x.a++;x.m++});break;
+      case 'miss':p.shots++;p.misses++;(e.tags||[]).forEach(t=>{const x=p.tags[t]||(p.tags[t]={a:0,m:0});x.a++});endTurn();break;
+      case 'safety':p.shots++;p.safeties++;pendingSafe=e.player;endTurn();break;
+      case 'foul':p.shots++;p.fouls++;if(e.kind==='scratch')p.scratches++;endTurn();break;
+      case 'switch':endTurn();break;
+      case 'rack':{endTurn();const w=R[e.winner];if(w){w.racks++;if(e.how==='break')w.golden++;
+        const evs=e.how==='break'?[]:rackEvs.filter(x=>x.type!=='switch');if(evs.length&&evs[0].type==='break'&&evs[0].result==='made'&&evs[0].player===e.winner&&evs.slice(1).every(x=>x.type==='pot'&&x.player===e.winner))w.bnr++}
+        s.playerIds.forEach(id=>R[id].racksPlayed++);
+        scores[e.winner]++;s.playerIds.forEach(id=>{const mx=Math.max(...s.playerIds.filter(o=>o!==id).map(o=>scores[o]),0);deficits[id]=Math.max(deficits[id],mx-scores[id])});
+        rackEvs=[];pendingSafe=null;break;}
+    }
+  }
+  endTurn();
+  s.highlights.forEach(h=>{if(R[h.player])R[h.player].clips++});
+  const fin=s.final||{scores:replay(s).scores};
+  s.playerIds.forEach(id=>{const r=R[id];r.sessions=1;r.points=fin.scores[id]||0;if(s.final&&s.final.winner&&s.playerIds.length>1){r.matches=1;if(s.final.winner===id){r.wins=1;r.maxDeficitWon=deficits[id]}}});
+  return R;
+}
+function aggregate(list){const A={};for(const s of list){const R=sessionStats(s);for(const id in R){const a=A[id]||(A[id]=blank()),r=R[id];for(const k in r){if(k==='tags'){for(const t in r.tags){const x=a.tags[t]||(a.tags[t]={a:0,m:0});x.a+=r.tags[t].a;x.m+=r.tags[t].m}}else if(k==='longestRun'||k==='maxDeficitWon')a[k]=Math.max(a[k],r[k]);else a[k]+=r[k]}}}return A}
+const potRate=r=>pct(r.pots,r.pots+r.misses+r.fouls);
+const avgRun=r=>r.runsCount?(r.runsSum/r.runsCount).toFixed(1):'–';
+const pace=r=>r.timeN?Math.round(r.timeSum/r.timeN/1000)+'s':'–';
+function insights(s,R){
+  const out=[];const ids=s.playerIds;const nm=id=>esc(P(id).name);
+  const by=(f,min=0)=>ids.filter(id=>f(R[id])!=null&&f(R[id])>=min).sort((a,b)=>f(R[b])-f(R[a]));
+  const att=r=>r.pots+r.misses+r.fouls;
+  if(s.final&&s.final.winner&&ids.length>1){const w=s.final.winner,r=R[w];out.push(`<b>${nm(w)}</b> took it ${ids.map(id=>s.final.scores[id]).join('–')}${r.maxDeficitWon>=2?` after coming back from ${r.maxDeficitWon} down — clutch.`:'.'}`)}
+  const pr=by(r=>att(r)>=5?r.pots/att(r):null);if(pr.length)out.push(`Sharpest shooter: <b>${nm(pr[0])}</b> at ${potRate(R[pr[0]])} on ${att(R[pr[0]])} attempts.`);
+  const lr=by(r=>r.longestRun,3);if(lr.length)out.push(`Best run of the night: <b>${nm(lr[0])}</b> with ${R[lr[0]].longestRun} balls in a row.`);
+  ids.forEach(id=>{const r=R[id];if(r.bnr)out.push(`<b>${nm(id)}</b> broke and ran ${r.bnr} rack${r.bnr>1?'s':''}. 🔥`);if(r.golden)out.push(`<b>${nm(id)}</b> won ${r.golden} rack${r.golden>1?'s':''} straight off the break.`)});
+  const fl=by(r=>r.shots>=8?r.fouls/r.shots:null);if(fl.length&&R[fl[0]].fouls>=3)out.push(`Watch the cue ball, <b>${nm(fl[0])}</b>: ${R[fl[0]].fouls} fouls — about 1 in every ${Math.max(1,Math.round(R[fl[0]].shots/R[fl[0]].fouls))} shots.`);
+  const sf=by(r=>r.safetyWins,2);if(sf.length)out.push(`Safety master: <b>${nm(sf[0])}</b> — ${R[sf[0]].safetyWins} of ${R[sf[0]].safeties} safeties forced a miss or foul.`);
+  const br=by(r=>r.breaks>=3?r.breaksMade/r.breaks:null);if(br.length&&ids.length>1)out.push(`Best breaker: <b>${nm(br[0])}</b> made a ball on ${pct(R[br[0]].breaksMade,R[br[0]].breaks)} of breaks.`);
+  const pc=ids.filter(id=>R[id].timeN>=5).sort((a,b)=>R[a].timeSum/R[a].timeN-R[b].timeSum/R[b].timeN);if(pc.length>1)out.push(`Speed demon: <b>${nm(pc[0])}</b> (${pace(R[pc[0]])} per shot) vs. <b>${nm(pc[pc.length-1])}</b> (${pace(R[pc[pc.length-1]])}).`);
+  ids.forEach(id=>{const t=R[id].tags;let best=null;for(const k in t)if(t[k].a>=3&&(!best||t[k].m/t[k].a>t[best].m/t[best].a))best=k;if(best)out.push(`<b>${nm(id)}</b>’s best shot type: ${best.toLowerCase()} shots at ${pct(t[best].m,t[best].a)} (${t[best].m}/${t[best].a}).`)});
+  if(s.autoShots){const logged=ids.reduce((a,id)=>a+R[id].shots+R[id].breaks,0);out.push(`Camera picked up ${s.autoShots} shots of motion; ${logged} were logged.`)}
+  return out;
+}
+
+/* ---------- report ---------- */
+const HOW={normal:'normal',break:'on the break',moneyfoul:'opponent fouled',concede:'conceded'};
+function momentumSVG(s){
+  const W=640,H=180,pl=34,pr=10,pt=12,pb=24;const dur=Math.max(1,s.duration||0,...s.events.map(e=>e.t));const straight=s.gameType==='straight';
+  const sc={},ser={};s.playerIds.forEach(id=>{sc[id]=0;ser[id]=[[0,0]]});
+  for(const e of s.events){let c=null;
+    if(straight){if(e.type==='pot'||(e.type==='break'&&e.result==='made')){sc[e.player]+=e.balls||1;c=e.player}else if(e.type==='foul'||(e.type==='break'&&e.result==='foul')){sc[e.player]-=1;c=e.player}}
+    else if(e.type==='rack'){sc[e.winner]++;c=e.winner}
+    if(c&&ser[c])ser[c].push([e.t,sc[c]])}
+  const all=Object.values(ser).flat().map(p=>p[1]);const maxY=Math.max(1,...all),minY=Math.min(0,...all);
+  const X=t=>pl+(W-pl-pr)*t/dur,Y=v=>pt+(H-pt-pb)*(1-(v-minY)/(maxY-minY||1));
+  let g='';const ticks=Math.min(maxY-minY,6);for(let i=0;i<=ticks;i++){const v=Math.round(minY+(maxY-minY)*i/ticks);g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="#234538" stroke-width="1"/><text x="${pl-6}" y="${Y(v)+4}" fill="#8db2a2" font-size="11" text-anchor="end">${v}</text>`}
+  g+=`<text x="${pl}" y="${H-6}" fill="#8db2a2" font-size="11">0:00</text><text x="${W-pr}" y="${H-6}" fill="#8db2a2" font-size="11" text-anchor="end">${fmtT(dur)}</text>`;
+  const lines=s.playerIds.map(id=>{const pts=ser[id];let d=`M${X(0)},${Y(0)}`;for(const[t,v]of pts.slice(1))d+=` H${X(t).toFixed(1)} V${Y(v).toFixed(1)}`;d+=` H${X(dur)}`;const c=P(id).color;const last=pts[pts.length-1];
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${X(dur)}" cy="${Y(last[1])}" r="4" fill="${c}"/>`}).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Score over time">${g}${lines}</svg>`;
+}
+function playerTable(s,R){
+  const straight=s.gameType==='straight';
+  return `<div class="tscroll"><table><thead><tr><th>Player</th><th>${straight?'Points':'Racks'}</th><th>Pot %</th><th>Pots</th><th>Misses</th><th>Safeties</th><th>Fouls</th><th>Best run</th><th>Avg run</th><th>Breaks made</th><th>B&amp;R</th><th>Pace</th>${s.elo&&Object.keys(s.elo).length?'<th>Elo</th>':''}</tr></thead><tbody>
+  ${s.playerIds.map(id=>{const r=R[id],p=P(id);const d=s.elo&&s.elo[id];return `<tr><td><span style="color:${p.color}">●</span> <b>${esc(p.name)}</b></td><td><b>${straight?r.points:r.racks}</b></td><td>${potRate(r)}</td><td>${r.balls}</td><td>${r.misses}</td><td>${r.safeties}${r.safetyWins?` <span class="mute">(${r.safetyWins}✓)</span>`:''}</td><td>${r.fouls}</td><td>${r.longestRun}</td><td>${avgRun(r)}</td><td>${r.breaks?`${r.breaksMade}/${r.breaks}`:'–'}</td><td>${r.bnr}</td><td>${pace(r)}</td>${s.elo&&Object.keys(s.elo).length?`<td>${d?(d>0?'+':'')+d:'–'}</td>`:''}</tr>`}).join('')}
+  </tbody></table></div>`;
+}
+function shotMix(s,R){return s.playerIds.map(id=>{const r=R[id];const t=Math.max(1,r.pots+r.misses+r.safeties+r.fouls);const seg=(v,c)=>`<i style="width:${100*v/t}%;background:${c}"></i>`;
+  return `<div style="margin:8px 0"><div class="spread small"><b>${esc(P(id).name)}</b><span class="mute">${r.pots} pot · ${r.misses} miss · ${r.safeties} safe · ${r.fouls} foul</span></div><div class="bar">${seg(r.pots,'var(--pot)')}${seg(r.misses,'var(--miss)')}${seg(r.safeties,'var(--safe)')}${seg(r.fouls,'var(--foul)')}</div></div>`}).join('')}
+function rackStrip(s){const racks=s.events.filter(e=>e.type==='rack');if(!racks.length)return '<span class="mute small">No racks finished.</span>';let prev=0;
+  return `<div class="racks">${racks.map(e=>{const d=e.t-prev;prev=e.t;const p=P(e.winner);return `<div class="rk" style="background:${p.color}" title="${esc(p.name)} · ${fmtT(d)}">${e.rack}<div style="font-weight:600;opacity:.8">${esc(p.name.slice(0,6))}</div><div style="font-weight:600;opacity:.7">${fmtT(d)}</div></div>`}).join('')}</div>`}
+async function openReport(id){
+  const s=await loadSession(id);if(!s)return;const R=sessionStats(s);
+  showTab('report');
+  const fin=s.final||{scores:replay(s).scores};const straight=s.gameType==='straight';
+  const hasVideo=h=>s.segments.some(g=>!g.removed&&g.end>h.start&&g.start<h.end);
+  $('#tab-report').innerHTML=`<div class="stack" style="max-width:1000px;margin:0 auto">
+    <div class="spread"><button class="btn sm ghost" data-act="tab" data-arg="history">← History</button><div class="row">
+      <button class="btn sm primary" data-act="emailReport" data-arg="${s.id}">✉ Email report</button>
+      <button class="btn sm" data-act="copyReport" data-arg="${s.id}">Copy summary</button>
+      <button class="btn sm" data-act="shareFiles" data-arg="${s.id}">Export files</button></div></div>
+    <div class="card"><div class="spread"><div><div class="mute small">${esc(fmtDate(s.date))} · ${esc(GAMES[s.gameType])}${s.raceTo?(straight?` · to ${s.raceTo} pts`:` · race to ${s.raceTo}`):''} · ${fmtDur(s.duration||0)}</div>
+      <div class="winner" style="margin-top:4px">${s.final&&s.final.winner?`🏆 ${esc(P(s.final.winner).name)} wins`:'Session summary'}</div></div>
+      <div class="row">${s.playerIds.map(id=>`<div style="text-align:center">${avatar(P(id),'lg')}<div class="num" style="font-size:28px;font-weight:800">${fin.scores[id]}</div></div>`).join('<div class="mute" style="font-size:24px">–</div>')}</div></div></div>
+    <div class="kpis">
+      <div class="kpi"><span>Shots</span><b class="num">${s.playerIds.reduce((a,id)=>a+R[id].shots,0)}</b></div>
+      <div class="kpi"><span>Balls potted</span><b class="num">${s.playerIds.reduce((a,id)=>a+R[id].balls+R[id].breakBalls,0)}</b></div>
+      <div class="kpi"><span>${straight?'Top score':'Racks'}</span><b class="num">${straight?Math.max(...Object.values(fin.scores)):s.events.filter(e=>e.type==='rack').length}</b></div>
+      <div class="kpi"><span>Best run</span><b class="num">${Math.max(0,...s.playerIds.map(id=>R[id].longestRun))}</b></div>
+      <div class="kpi"><span>Highlights</span><b class="num">${s.highlights.length}</b></div>
+    </div>
+    <div class="card"><h3>Player stats</h3>${playerTable(s,R)}</div>
+    <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      <div class="card"><h3>Momentum</h3>${momentumSVG(s)}<div class="row small">${s.playerIds.map(id=>`<span><span style="color:${P(id).color}">■</span> ${esc(P(id).name)}</span>`).join('')}</div></div>
+      <div class="card"><h3>Shot mix</h3>${shotMix(s,R)}<hr><h3 style="margin-bottom:8px">Rack by rack</h3>${straight?'<span class="mute small">Straight pool — see momentum.</span>':rackStrip(s)}</div>
+    </div>
+    <div class="card stack"><h3>What stood out</h3>${insights(s,R).map(i=>`<div class="insight">${i}</div>`).join('')||'<span class="mute">Log a few more shots to unlock insights.</span>'}</div>
+    <div class="card stack"><div class="spread"><h3>Highlights</h3><span class="small mute">${s.segments.some(g=>!g.removed)?'Tap to replay':'No video saved for this session'}</span></div>
+      <div class="list">${s.highlights.length?s.highlights.map(h=>`<div class="hl">${hasVideo(h)?`<button class="play" data-act="playClip" data-arg="${s.id}|${h.id}">▶</button>`:'<div class="play" style="opacity:.3">★</div>'}<div style="flex:1"><b>${esc(h.label)}</b><div class="small mute">${fmtT(h.t)} · rack ${h.rack}${h.auto?' · auto':''}</div></div><button class="btn sm ghost" data-act="renameClip" data-arg="${s.id}|${h.id}">✎</button></div>`).join(''):'<span class="mute small">No clips this time. Tap “★ Clip that!” during play.</span>'}</div></div>
+    <details class="card"><summary style="cursor:pointer;font-weight:700">Full shot log (${s.events.length})</summary><div class="feed" style="max-height:none;margin-top:10px">${s.events.map(e=>`<div class="ev"><span class="t num">${fmtT(e.t)}</span><span><span style="color:${EVCOLOR[e.type]}">●</span> <b>${esc(P(e.type==='rack'?e.winner:e.type==='switch'?s.playerIds[e.to]:e.player).name)}</b> ${esc(evText(e))}</span></div>`).join('')}</div></details>
+    <div class="row"><button class="btn sm danger" data-act="deleteSession" data-arg="${s.id}">Delete session</button></div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+
+/* ---------- email / export ---------- */
+function textSummary(s){const R=sessionStats(s);const fin=s.final||{scores:{}};const straight=s.gameType==='straight';
+  const L1=[`PoolCam — ${GAMES[s.gameType]} · ${fmtDate(s.date)}`,`${s.playerIds.map(id=>P(id).name+' '+fin.scores[id]).join(' – ')}${s.raceTo?` (${straight?'to '+s.raceTo+' pts':'race to '+s.raceTo})`:''} · ${fmtDur(s.duration||0)}`];
+  if(fin.winner)L1.push(`Winner: ${P(fin.winner).name}`);L1.push('');
+  s.playerIds.forEach(id=>{const r=R[id];L1.push(`${P(id).name}: ${straight?r.points+' pts':r.racks+' racks'} · pot ${potRate(r)} · best run ${r.longestRun} · fouls ${r.fouls} · safeties ${r.safeties} · breaks made ${r.breaksMade}/${r.breaks} · B&R ${r.bnr}${s.elo&&s.elo[id]?` · Elo ${s.elo[id]>0?'+':''}${s.elo[id]}`:''}`)});
+  const ins=insights(s,R).map(x=>'• '+x.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&#39;/g,"'"));if(ins.length){L1.push('','Highlights of the night:',...ins)}
+  if(s.highlights.length){L1.push('',`${s.highlights.length} video clips:`);s.highlights.slice(0,15).forEach(h=>L1.push(`  ${fmtT(h.t)}  ${h.label}`))}
+  return L1.join('\n');
+}
+function reportHTML(s){const R=sessionStats(s);const fin=s.final||{scores:{}};
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PoolCam report</title><style>body{font:15px -apple-system,Segoe UI,Roboto,sans-serif;background:#0f231b;color:#ecf4ef;padding:20px;max-width:900px;margin:auto}table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #234538;text-align:right}td:first-child,th:first-child{text-align:left}th{color:#8db2a2;font-size:12px;text-transform:uppercase}.mute{color:#8db2a2}.insight{border-left:3px solid #e9c46a;padding:6px 10px;margin:6px 0;background:#0b1c15}.card{background:#153126;border-radius:12px;padding:14px;margin:12px 0}.tscroll{overflow-x:auto}</style></head><body>
+  <h1>${fin.winner?'🏆 '+esc(P(fin.winner).name)+' wins':'PoolCam session'}</h1><p class="mute">${esc(fmtDate(s.date))} · ${esc(GAMES[s.gameType])} · ${fmtDur(s.duration||0)} · ${s.playerIds.map(id=>esc(P(id).name)+' '+fin.scores[id]).join(' – ')}</p>
+  <div class="card">${playerTable(s,R)}</div><div class="card"><h3>Momentum</h3>${momentumSVG(s)}</div>
+  <div class="card"><h3>What stood out</h3>${insights(s,R).map(i=>`<div class="insight">${i}</div>`).join('')}</div>
+  <div class="card"><h3>Highlights</h3>${s.highlights.map(h=>`<div>${fmtT(h.t)} — ${esc(h.label)}</div>`).join('')||'<span class="mute">none</span>'}</div>
+  <div class="card"><h3>Shot log</h3>${s.events.map(e=>`<div>${fmtT(e.t)} · ${esc(P(e.type==='rack'?e.winner:e.type==='switch'?s.playerIds[e.to]:e.player).name)} ${esc(evText(e))}</div>`).join('')}</div></body></html>`}
+function csvOf(s){const rows=[['date','game','rack','time','player','event','result','balls','tags']];
+  s.events.forEach(e=>rows.push([s.date,GAMES[s.gameType],e.rack,fmtT(e.t),P(e.type==='rack'?e.winner:e.type==='switch'?s.playerIds[e.to]:e.player).name,e.type,e.result||e.how||e.kind||'',e.balls||(e.type==='pot'?1:''),(e.tags||[]).join(' ')]));
+  return rows.map(r=>r.map(v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n')}
+async function shareOrDownload(files,title,text){
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title,text});return true}}catch(e){if(e.name==='AbortError')return true}
+  try{const dl=window.claude&&window.claude.use?await Promise.race([window.claude.use('downloads'),new Promise(r=>setTimeout(()=>r(null),1500))]):null;
+    if(dl){for(const f of files){try{await dl.save({filename:f.name,data:f})}catch(e1){if(f.type.startsWith('text')||f.type.includes('json'))await dl.save({filename:f.name,data:await f.text()});else throw e1}}return true}}catch(e){if(e&&e.name==='AbortError')return true}
+  try{for(const f of files){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}return true}catch(e){toast('Downloads are blocked here — use Copy instead');return false}
+}
+const reportFiles=s=>{const d=s.date.slice(0,10);return[new File([reportHTML(s)],`poolcam-${d}.html`,{type:'text/html'}),new File([csvOf(s)],`poolcam-${d}-shots.csv`,{type:'text/csv'})]};
+function emailModal(s){
+  const to=settings.emails.trim();const subj=`🎱 PoolCam: ${s.playerIds.map(id=>P(id).name+' '+(s.final?s.final.scores[id]:'')).join(' – ')} (${GAMES[s.gameType]})`;
+  let body=textSummary(s);if(body.length>1800)body=body.slice(0,1800)+'\n…';
+  const href=`mailto:${encodeURIComponent(to).replace(/%2C/g,',').replace(/%40/g,'@')}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  modal(`<h2>Email the report</h2><p class="mute small">${to?`To: <b>${esc(to)}</b>`:'No recipients yet — add them in Settings, or pick them in Mail.'}</p>
+    <div class="stack">
+      <a class="btn primary" style="text-decoration:none" href="${href}">✉ Open in Mail (summary in the body)</a>
+      <button class="btn" data-act="shareFiles" data-arg="${s.id}">📎 Share with attachments (full report + CSV)</button>
+      <button class="btn" data-act="copyReport" data-arg="${s.id}">Copy summary text</button>
+      <button class="btn ghost" data-act="closeModal">Close</button>
+    </div>
+    <p class="small mute">“Share with attachments” opens the iPad share sheet — choose Mail and the full HTML report and shot-by-shot CSV are attached.</p>`);
+}
+
+/* ---------- modal ---------- */
+function modal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.classList.add('open');return m.firstChild}
+function closeModal(){const m=$('#modal');m.querySelectorAll('video').forEach(v=>{v.pause();v.removeAttribute('src');v.load()});L.modalUrls.forEach(u=>URL.revokeObjectURL(u));L.modalUrls=[];m.classList.remove('open');m.innerHTML=''}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+function ask(msg,ok='OK',danger=false){return new Promise(res=>{const el=modal(`<p style="font-size:17px;margin-top:0">${msg}</p><div class="row" style="justify-content:flex-end"><button class="btn" id="mNo">Cancel</button><button class="btn ${danger?'danger':'primary'}" id="mYes">${ok}</button></div>`);el.querySelector('#mNo').onclick=()=>{closeModal();res(false)};el.querySelector('#mYes').onclick=()=>{closeModal();res(true)}})}
+function promptText(title,val=''){return new Promise(res=>{const el=modal(`<h3>${title}</h3><input id="mIn" value="${esc(val)}" style="margin:12px 0"><div class="row" style="justify-content:flex-end"><button class="btn" id="mNo">Cancel</button><button class="btn primary" id="mYes">Save</button></div>`);const i=el.querySelector('#mIn');i.focus();const done=v=>{closeModal();res(v)};el.querySelector('#mNo').onclick=()=>done(null);el.querySelector('#mYes').onclick=()=>done(i.value.trim());i.onkeydown=e=>{if(e.key==='Enter')done(i.value.trim())}})}
+
+async function playClip(sid,hid){
+  const s=await loadSession(sid);const h=s&&s.highlights.find(x=>x.id===hid);if(!h)return;
+  const segs=s.segments.filter(g=>!g.removed&&g.end>h.start&&g.start<h.end).sort((a,b)=>a.start-b.start);
+  if(!segs.length){toast('No video saved for this clip');return}
+  const el=modal(`<div class="spread"><h3>${esc(h.label)}</h3><button class="btn sm ghost" data-act="closeModal">✕</button></div><video id="hv" controls playsinline></video>
+    <div class="row"><button class="btn sm" data-act="saveClip" data-arg="${sid}|${hid}">⤓ Save / share video</button><span class="small mute">${fmtT(h.start)}–${fmtT(h.end)} · saves the recorded segment it sits in</span></div>`);
+  const v=el.querySelector('#hv');let i=0;
+  const load=async()=>{const rec=await Store.get(segs[i].id,'seg');if(!rec){toast('Clip video missing');return}const u=URL.createObjectURL(rec.blob);L.modalUrls.push(u);
+    v.onloadedmetadata=()=>{try{v.currentTime=Math.max(0,(h.start-segs[i].start)/1000)}catch(e){}v.play().catch(()=>{})};v.src=u};
+  v.ontimeupdate=()=>{if(segs[i].start+v.currentTime*1000>=h.end+300)v.pause()};
+  v.onended=()=>{if(i<segs.length-1){i++;load()}};
+  await load();
+}
+
+/* ---------- other tabs ---------- */
+function showTab(t){$$('section.tab').forEach(s=>s.classList.toggle('on',s.id==='tab-'+t));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  if(t==='players')renderPlayers();if(t==='history')renderHistory();if(t==='stats')renderStats();if(t==='settings')renderSettings();if(t==='play'&&!S)renderSetup();if(t==='play'&&S)setTimeout(drawOverlay,50)}
+function renderPlayers(){
+  $('#tab-players').innerHTML=`<div class="stack" style="max-width:860px;margin:0 auto"><div class="spread"><h2>Players</h2><button class="btn primary" data-act="editPlayer">＋ New player</button></div>
+  ${players.length?`<div class="list">${players.map(p=>`<div class="hl">${avatar(p)}<div style="flex:1"><b>${esc(p.name)}</b><div class="small mute">Elo ${p.elo||1200}${p.shirt?` · shirt <span style="display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;background:rgb(${p.shirt.map(Math.round).join(',')})"></span>`:''}</div></div><button class="btn sm" data-act="editPlayer" data-arg="${p.id}">Edit</button><button class="btn sm" data-act="playerDetail" data-arg="${p.id}">Stats</button></div>`).join('')}</div>`:'<div class="card mute">No players yet. Add your crew — a photo makes the scoreboard look great and helps the camera guess who’s shooting.</div>'}
+  <p class="small mute">Shirt colour powers the “who’s shooting?” hint: when someone leans over the table, PoolCam compares the colour it sees at the rail to each player’s shirt and offers to switch the shooter if it doesn’t match.</p></div>`;
+}
+let editPhoto=null;
+function editPlayerModal(id){
+  const p=id?players.find(x=>x.id===id):{name:'',color:COLORS[players.length%COLORS.length]};editPhoto=p.photo||null;
+  const hex=p.shirt?'#'+p.shirt.map(v=>Math.round(v).toString(16).padStart(2,'0')).join(''):'#ffffff';
+  const el=modal(`<h2>${id?'Edit player':'New player'}</h2><div class="stack" style="margin-top:12px">
+    <div class="row"><div id="pAv">${avatar({...p,photo:editPhoto})}</div><button class="btn sm" data-act="pickPhoto">📷 Photo</button>${editPhoto?'<button class="btn sm ghost" data-act="clearPhoto">Remove</button>':''}</div>
+    <div><label class="f">Name</label><input id="pName" value="${esc(p.name)}" placeholder="e.g. Raj"></div>
+    <div><label class="f">Scoreboard colour</label><div class="row">${COLORS.map(c=>`<button class="chip" data-act="pColor" data-arg="${c}" style="background:${c};width:36px;${c===p.color?'outline:3px solid #fff':''}">&nbsp;</button>`).join('')}</div></div>
+    <div><label class="f">Shirt colour tonight (for shooter hint)</label><div class="row"><input type="color" id="pShirt" value="${hex}"><label class="row small"><input type="checkbox" id="pShirtOn" style="width:auto" ${p.shirt?'checked':''}> use it</label><span class="small mute">Auto-filled from the photo</span></div></div>
+    <div class="row" style="justify-content:space-between">${id?`<button class="btn danger" data-act="delPlayer" data-arg="${id}">Delete</button>`:'<span></span>'}<span class="row"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" data-act="savePlayer" data-arg="${id||''}">Save</button></span></div></div>`);
+  el.dataset.color=p.color;
+}
+function photoToAvatar(file){return new Promise(res=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const S2=160;c.width=c.height=S2;const x=c.getContext('2d');const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S2,S2);
+  const d=x.getImageData(S2*0.3,S2*0.78,S2*0.4,S2*0.2).data;let r=0,g=0,b=0,n=0;for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++}
+  res({url:c.toDataURL('image/jpeg',0.8),shirt:[r/n,g/n,b/n]});URL.revokeObjectURL(img.src)};img.onerror=()=>res(null);img.src=URL.createObjectURL(file)})}
+
+async function renderHistory(){
+  const list=[];for(const it of index){const s=await loadSession(it.id);if(s&&s.endedAt)list.push(s)}
+  $('#tab-history').innerHTML=`<div class="stack" style="max-width:860px;margin:0 auto"><h2>History</h2>${list.length?`<div class="list">${list.map(s=>{const f=s.final||{scores:{}};return `<button class="hl" style="text-align:left;width:100%" data-act="openReport" data-arg="${s.id}"><div class="play" style="background:${f.winner?P(f.winner).color:'#555'}">🎱</div><div style="flex:1"><b>${s.playerIds.map(id=>esc(P(id).name)+' '+(f.scores[id]??'')).join(' – ')}</b><div class="small mute">${esc(fmtDate(s.date))} · ${esc(GAMES[s.gameType])} · ${fmtDur(s.duration||0)} · ${s.highlights.length} clips</div></div><span class="mute">›</span></button>`}).join('')}</div>`:'<div class="card mute">Finished sessions show up here with their full report.</div>'}</div>`;
+}
+async function renderStats(){
+  const list=await allSessions();const A=aggregate(list);
+  const ids=Object.keys(A).filter(id=>players.some(p=>p.id===id)).sort((a,b)=>(P(b).elo||1200)-(P(a).elo||1200));
+  const h2h={};list.forEach(s=>{if(s.final&&s.final.winner&&s.playerIds.length>1)s.playerIds.forEach(o=>{if(o===s.final.winner)return;const k=s.final.winner+'>'+o;h2h[k]=(h2h[k]||0)+1})});
+  $('#tab-stats').innerHTML=`<div class="stack" style="max-width:1100px;margin:0 auto"><div class="spread"><h2>All-time stats</h2><span class="mute small">${list.length} sessions</span></div>
+  ${ids.length?`<div class="card"><h3>Leaderboard</h3><div class="tscroll"><table><thead><tr><th>#</th><th>Player</th><th>Elo</th><th>Matches W–L</th><th>Racks</th><th>Pot %</th><th>Best run</th><th>Avg run</th><th>Break %</th><th>B&amp;R</th><th>Fouls/100</th><th>Safety ✓</th><th>Clips</th></tr></thead><tbody>
+    ${ids.map((id,i)=>{const r=A[id],p=P(id);return `<tr><td>${['🥇','🥈','🥉'][i]||i+1}</td><td style="text-align:left"><button data-act="playerDetail" data-arg="${id}" style="font-weight:700"><span style="color:${p.color}">●</span> ${esc(p.name)}</button></td><td><b>${p.elo||1200}</b></td><td>${r.wins}–${r.matches-r.wins}</td><td>${r.racks}</td><td>${potRate(r)}</td><td>${r.longestRun}</td><td>${avgRun(r)}</td><td>${pct(r.breaksMade,r.breaks)}</td><td>${r.bnr}</td><td>${r.shots?Math.round(100*r.fouls/r.shots):'–'}</td><td>${pct(r.safetyWins,r.safeties)}</td><td>${r.clips}</td></tr>`}).join('')}
+  </tbody></table></div></div>
+  ${ids.length>1?`<div class="card"><h3>Head to head <span class="small mute">(match wins, row vs column)</span></h3><div class="tscroll"><table><thead><tr><th></th>${ids.map(id=>`<th>${esc(P(id).name)}</th>`).join('')}</tr></thead><tbody>${ids.map(a=>`<tr><td><b>${esc(P(a).name)}</b></td>${ids.map(b=>a===b?'<td class="mute">—</td>':`<td>${h2h[a+'>'+b]||0}–${h2h[b+'>'+a]||0}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`:''}
+  <div class="card"><h3>Shot-type success</h3><div class="tscroll"><table><thead><tr><th>Player</th>${TAGS.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${ids.map(id=>`<tr><td><b>${esc(P(id).name)}</b></td>${TAGS.map(t=>{const x=A[id].tags[t];return `<td>${x?`${pct(x.m,x.a)} <span class="mute small">${x.m}/${x.a}</span>`:'–'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><p class="small mute">Tag shots (Cut, Bank, Combo…) right after logging them to fill this in.</p></div>`
+  :'<div class="card mute">Play and finish a session to see the leaderboard, Elo ratings, head-to-head records and shot-type stats.</div>'}</div>`;
+}
+async function playerDetail(id){
+  const list=(await allSessions()).filter(s=>s.playerIds.includes(id));const r=aggregate(list)[id]||blank();const p=P(id);
+  const form=list.slice(0,10).map(s=>s.final&&s.final.winner?(s.final.winner===id?'<b style="color:var(--pot)">W</b>':'<b style="color:var(--miss)">L</b>'):'<span class="mute">–</span>').join(' ');
+  modal(`<div class="spread"><div class="row">${avatar(p,'lg')}<div><h2>${esc(p.name)}</h2><div class="mute">Elo ${p.elo||1200} · ${r.sessions} sessions</div></div></div><button class="btn sm ghost" data-act="closeModal">✕</button></div>
+  <div class="kpis" style="margin-top:14px">
+   <div class="kpi"><span>Match record</span><b>${r.wins}–${r.matches-r.wins}</b></div><div class="kpi"><span>Racks won</span><b>${r.racks}</b></div>
+   <div class="kpi"><span>Pot rate</span><b>${potRate(r)}</b></div><div class="kpi"><span>Best run</span><b>${r.longestRun}</b></div>
+   <div class="kpi"><span>Avg run</span><b>${avgRun(r)}</b></div><div class="kpi"><span>Break success</span><b>${pct(r.breaksMade,r.breaks)}</b></div>
+   <div class="kpi"><span>Balls / break</span><b>${r.breaksMade?(r.breakBalls/r.breaksMade).toFixed(1):'–'}</b></div><div class="kpi"><span>Break & runs</span><b>${r.bnr}</b></div>
+   <div class="kpi"><span>Won on break</span><b>${r.golden}</b></div><div class="kpi"><span>Safety success</span><b>${pct(r.safetyWins,r.safeties)}</b></div>
+   <div class="kpi"><span>Fouls / scratches</span><b>${r.fouls} / ${r.scratches}</b></div><div class="kpi"><span>Pace</span><b>${pace(r)}</b></div>
+  </div><p><b>Recent form</b> (newest first): ${form||'<span class="mute">no matches yet</span>'}</p>`);
+}
+function renderSettings(){
+  const s=settings;
+  $('#tab-settings').innerHTML=`<div class="stack" style="max-width:860px;margin:0 auto"><h2>Settings</h2>
+  <div class="card stack"><h3>Email</h3><div><label class="f">Send reports to</label><input id="sEmails" value="${esc(s.emails)}" placeholder="you@gmail.com, friend@gmail.com"></div>
+    <label class="row"><input type="checkbox" id="sAutoEmail" style="width:auto" ${s.autoEmail?'checked':''}> Open the email screen automatically when a session ends</label></div>
+  <div class="card stack"><h3>Recording & highlights</h3>
+    <div class="grid2"><div><label class="f">Clip: seconds before tap</label><input type="number" id="sPre" min="3" max="60" value="${s.pre}"></div><div><label class="f">Clip: seconds after tap</label><input type="number" id="sPost" min="0" max="30" value="${s.post}"></div></div>
+    <div class="grid2"><div><label class="f">Video quality</label><select id="sQuality">${[[1200000,'Light (1.2 Mbps)'],[2500000,'Standard (2.5 Mbps)'],[4500000,'High (4.5 Mbps)']].map(([v,l])=>`<option value="${v}" ${+s.quality===v?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div><label class="f">Segment length (seconds)</label><input type="number" id="sSeg" min="30" max="300" value="${s.segSec}"></div></div>
+    <label class="row"><input type="checkbox" id="sAutoClip" style="width:auto" ${s.autoClip?'checked':''}> Auto-clip big moments (rack wins, runs of 5+, break & runs, wins on the break)</label>
+    <label class="row"><input type="checkbox" id="sKeep" style="width:auto" ${s.keepFull?'checked':''}> Keep the full game video (otherwise only video around highlights is kept — saves lots of space)</label>
+    <label class="row"><input type="checkbox" id="sAudio" style="width:auto" ${s.audio?'checked':''}> Record sound</label></div>
+  <div class="card stack"><h3>Camera smarts</h3>
+    <label class="row"><input type="checkbox" id="sMotion" style="width:auto" ${s.motion?'checked':''}> Shot detection (watches the table and nudges you to log each shot)</label>
+    <div><label class="f">Motion sensitivity: <span id="sensV">${s.sens}</span></label><input type="range" id="sSens" min="1" max="10" value="${s.sens}"></div>
+    <label class="row"><input type="checkbox" id="sHint" style="width:auto" ${s.shooterHint?'checked':''}> “Who’s shooting?” hint from shirt colours</label>
+    <div class="row"><span class="small mute">${s.calib?'Table is calibrated.':'Table not calibrated yet — do it from the Play screen with the camera running.'}</span>${s.calib?'<button class="btn sm" data-act="clearCalib">Reset calibration</button>':''}</div></div>
+  <div class="card stack"><h3>Your data</h3><p class="small mute" style="margin:0">Everything stays on this iPad (nothing is uploaded). Back it up now and then.</p>
+    <div class="row"><button class="btn" data-act="exportAll">Export backup</button><button class="btn" data-act="importAll">Import backup</button><button class="btn danger" data-act="wipe">Erase everything</button></div></div>
+  <div class="card help"><h3>iPad setup</h3><ol>
+    <li>Host this page (e.g. GitHub Pages) and open its address in <b>Safari</b> — the camera only works when PoolCam runs from its own https address.</li>
+    <li>Share → <b>Add to Home Screen</b> so it opens full-screen like an app.</li>
+    <li>Mount the iPad above or at the end of the table, rear camera facing down, whole table in frame. Keep it <b>plugged in</b>.</li>
+    <li>Start a camera session, then tap <b>⌖ Calibrate table</b> and tap the four corner pockets.</li>
+    <li>Keep PoolCam on screen: iPadOS pauses the camera if you switch apps. Use <b>◐ Dim screen</b> to save power, and Settings → Accessibility → <b>Guided Access</b> to lock it to the app.</li>
+    <li>Log shots with the big buttons (or from your phone by opening the scoreboard there in scoreboard-only mode).</li></ol></div>
+  </div>`;
+  const bind=(id,fn)=>{const el=$('#'+id);el.addEventListener('change',()=>{fn(el);saveSettings()})};
+  bind('sEmails',e=>settings.emails=e.value.trim());bind('sAutoEmail',e=>settings.autoEmail=e.checked);
+  bind('sPre',e=>settings.pre=Math.max(3,Math.min(60,+e.value||15)));bind('sPost',e=>settings.post=Math.max(0,Math.min(30,+e.value||5)));
+  bind('sQuality',e=>settings.quality=+e.value);bind('sSeg',e=>settings.segSec=Math.max(30,Math.min(300,+e.value||90)));
+  bind('sAutoClip',e=>settings.autoClip=e.checked);bind('sKeep',e=>settings.keepFull=e.checked);bind('sAudio',e=>settings.audio=e.checked);
+  bind('sMotion',e=>settings.motion=e.checked);bind('sHint',e=>settings.shooterHint=e.checked);
+  bind('sSens',e=>settings.sens=+e.value);$('#sSens').addEventListener('input',e=>$('#sensV').textContent=e.target.value);
+}
+
+/* ---------- actions ---------- */
+const ACT={
+  tab:a=>showTab(a),
+  selPlayer:id=>{const i=SETUP.players.indexOf(id);i>=0?SETUP.players.splice(i,1):SETUP.players.push(id);renderSetup()},
+  quickAdd:()=>{const i=$('#quickName');const n=i&&i.value.trim();if(!n)return;const p={id:uid(),name:n,color:COLORS[players.length%COLORS.length],elo:1200};players.push(p);savePlayers();SETUP.players.push(p.id);renderSetup()},
+  setGame:g=>{SETUP.game=g;if(g==='straight'&&SETUP.raceTo<20)SETUP.raceTo=50;if(g!=='straight'&&SETUP.raceTo>21)SETUP.raceTo=5;renderSetup()},
+  race:d=>{const step=SETUP.game==='straight'?25:1;SETUP.raceTo=Math.max(0,(SETUP.raceTo||0)+(+d)*step);renderSetup()},
+  setBreak:b=>{SETUP.breakRule=b;renderSetup()},
+  setSource:s=>{SETUP.source=s;renderSetup()},
+  start:()=>{if(!SETUP.players.length)return;if(SETUP.source==='file'){$('#fileVideo').value='';$('#fileVideo').click()}else startSession(SETUP.source)},
+  resume:async mode=>{const id=await Store.get('active');const a=await loadSession(id);if(!a)return;S=a;await beginLive(mode)},
+  finishOld:async()=>{const id=await Store.get('active');const a=await loadSession(id);if(!a)return;finalize(a);for(const g of a.segments)if(!settings.keepFull&&!a.highlights.some(h=>g.end>h.start&&g.start<h.end)){await Store.del(g.id,'seg');g.removed=true}
+    await saveSession(a);if(!index.some(x=>x.id===a.id))index.unshift({id:a.id,date:a.date});await saveIndex();await Store.del('active');openReport(a.id)},
+  brk:r=>{if(r==='win'){log('break',{result:'made',balls:1});const st=replay(S);rackWonModal('break',S.playerIds[st.shooter])}else log('break',{result:r,balls:r==='made'?1:undefined})},
+  pot:()=>log('pot',{balls:1}),miss:()=>log('miss'),safety:()=>log('safety'),
+  foul:()=>{const el=modal(`<h3>What kind of foul?</h3><div class="pad" style="margin-top:12px"><button class="act foul" id="fS">Scratch<small>cue ball potted</small></button><button class="act foul" id="fF">Other foul<small>wrong ball / no rail</small></button></div><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-act="closeModal">Cancel</button></div>`);
+    el.querySelector('#fS').onclick=()=>{closeModal();log('foul',{kind:'scratch'})};el.querySelector('#fF').onclick=()=>{closeModal();log('foul',{kind:'foul'})}},
+  plusBall:()=>{const e=lastShot();if(e){e.balls=(e.balls||1)+1;persist();renderLive();toast(`${e.balls} balls on that shot`)}},
+  tag:t=>{const e=lastShot();if(!e||(e.type!=='pot'&&e.type!=='miss'))return;e.tags=e.tags||[];const i=e.tags.indexOf(t);i>=0?e.tags.splice(i,1):e.tags.push(t);persist();renderLive()},
+  undo:()=>{if(!S||!S.events.length)return;const e=S.events.pop();
+    if(e.type==='rack'){const i=S.highlights.findIndex(h=>h.auto&&h.rack===e.rack&&Math.abs(h.t-e.t)<1500);if(i>=0)S.highlights.splice(i,1)}
+    persist();renderLive();toast('Undid: '+(EVLABEL[e.type]||e.type))},
+  rackWon:()=>rackWonModal(),
+  switchModal:()=>{const st=replay(S);const el=modal(`<h3>Who’s at the table?</h3><div class="list" style="margin-top:12px">${S.playerIds.map((id,i)=>`<button class="hl" data-i="${i}" ${i===st.shooter?'style="border-color:var(--accent)"':''}>${avatar(P(id))}<b>${esc(P(id).name)}</b></button>`).join('')}</div>`);
+    el.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{closeModal();const i=+b.dataset.i;if(i!==replay(S).shooter)log('switch',{to:i})})},
+  switchTo:id=>{$('#hintBox').innerHTML='';const i=S.playerIds.indexOf(id);if(i>=0)log('switch',{to:i})},
+  hideHint:()=>$('#hintBox').innerHTML='',
+  clip:()=>{if(!S)return;const st=replay(S);addHighlight(`${P(S.playerIds[st.shooter]).name} — great shot`,false)},
+  bigboard:()=>{renderBig();$('#bigboard').classList.add('on')},closeBig:()=>$('#bigboard').classList.remove('on'),
+  dim:()=>$('#dim').classList.add('on'),undim:()=>$('#dim').classList.remove('on'),
+  calibrate:()=>{if(!vid.videoWidth){toast('Start the camera or a video first');return}L.calibPts=[];$('#vbox').classList.add('calib');const t=$('#calibtip');t.style.display='';t.textContent='Tap the top-left corner pocket';drawOverlay()},
+  clearCalib:()=>{settings.calib=null;saveSettings();mask=null;renderSettings();toast('Calibration cleared')},
+  endSession:async()=>{if(await ask('End this session? Stats will be saved and the report opened.','End session'))endSession()},
+  openReport:id=>openReport(id),
+  emailReport:async id=>emailModal(await loadSession(id)),
+  copyReport:async id=>{const s=await loadSession(id);try{await navigator.clipboard.writeText(textSummary(s));toast('Summary copied')}catch(e){modal(`<h3>Copy this</h3><textarea style="width:100%;height:300px;background:#0a1a14;color:var(--text);border-radius:10px;padding:10px">${esc(textSummary(s))}</textarea><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">Close</button></div>`)}},
+  shareFiles:async id=>{const s=await loadSession(id);await shareOrDownload(reportFiles(s),'PoolCam report',textSummary(s).split('\n').slice(0,3).join('\n'))},
+  playClip:a=>{const[s,h]=a.split('|');playClip(s,h)},
+  saveClip:async a=>{const[sid,hid]=a.split('|');const s=await loadSession(sid);const h=s.highlights.find(x=>x.id===hid);const g=s.segments.find(g=>!g.removed&&g.end>h.start&&g.start<h.end);if(!g)return;const rec=await Store.get(g.id,'seg');if(!rec)return;
+    const ext=(rec.mime||'').includes('webm')?'webm':'mp4';await shareOrDownload([new File([rec.blob],`${h.label.replace(/[^\w]+/g,'-').slice(0,40)}.${ext}`,{type:rec.mime||'video/mp4'})],h.label,h.label)},
+  renameClip:async a=>{const[sid,hid]=a.split('|');const s=await loadSession(sid);const h=s.highlights.find(x=>x.id===hid);const v=await promptText('Name this highlight',h.label);if(v){h.label=v;await saveSession(s);openReport(sid)}},
+  deleteSession:async id=>{if(!await ask('Delete this session and its clips? This can’t be undone.','Delete',true))return;const s=await loadSession(id);for(const g of s.segments)await Store.del(g.id,'seg');await Store.del('session:'+id);SESS.delete(id);index=index.filter(x=>x.id!==id);await saveIndex();showTab('history')},
+  editPlayer:id=>editPlayerModal(id),
+  pColor:c=>{const sh=$('#modal .sheet');sh.dataset.color=c;$$('[data-act="pColor"]').forEach(b=>b.style.outline=b.dataset.arg===c?'3px solid #fff':'')},
+  pickPhoto:()=>{$('#filePhoto').value='';$('#filePhoto').click()},
+  clearPhoto:()=>{editPhoto=null;$('#pAv').innerHTML=avatar({name:$('#pName').value||'?',color:$('#modal .sheet').dataset.color})},
+  savePlayer:id=>{const name=$('#pName').value.trim();if(!name){toast('Give them a name');return}const color=$('#modal .sheet').dataset.color;const hex=$('#pShirt').value;
+    const shirt=$('#pShirtOn').checked?[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)):null;
+    if(id){const p=players.find(x=>x.id===id);Object.assign(p,{name,color,photo:editPhoto,shirt})}else players.push({id:uid(),name,color,photo:editPhoto,shirt,elo:1200});
+    savePlayers();closeModal();renderPlayers();if(S)renderLive()},
+  delPlayer:async id=>{closeModal();if(!await ask('Delete this player? Their past sessions stay in history.','Delete',true))return;players=players.filter(p=>p.id!==id);SETUP.players=SETUP.players.filter(x=>x!==id);savePlayers();renderPlayers()},
+  playerDetail:id=>playerDetail(id),
+  closeModal:()=>closeModal(),
+  exportAll:async()=>{const sessions=[];for(const it of index){const s=await loadSession(it.id);if(s)sessions.push(s)}const data=JSON.stringify({app:'poolcam',v:1,exported:new Date().toISOString(),players,settings,index,sessions});
+    const ok=await shareOrDownload([new File([data],`poolcam-backup-${new Date().toISOString().slice(0,10)}.json`,{type:'application/json'})],'PoolCam backup','');if(!ok)try{await navigator.clipboard.writeText(data);toast('Backup copied to clipboard')}catch(e){}},
+  importAll:()=>{$('#fileImport').value='';$('#fileImport').click()},
+  wipe:async()=>{if(!await ask('Erase all players, sessions, stats and clips from this iPad?','Erase everything',true))return;await Store.clear();SESS.clear();players=[];settings={...DEFAULTS};index=[];SETUP.players=[];toast('All data erased');showTab('play')},
+};
+function rackWonModal(how,preset){
+  const st=replay(S);const def=preset||S.playerIds[st.shooter];let sel=def,hw=how||'normal';
+  const draw=()=>{const el=modal(`<h3>Rack ${st.rack} — who won?</h3><div class="list" style="margin-top:12px">${S.playerIds.map(id=>`<button class="hl" data-w="${id}" style="${id===sel?'border-color:var(--accent);background:#2a2610':''}">${avatar(P(id))}<b>${esc(P(id).name)}</b></button>`).join('')}</div>
+    <label class="f" style="margin-top:14px">How</label><div class="seg">${Object.entries(HOW).map(([k,v])=>`<button class="${hw===k?'on':''}" data-h="${k}">${v}</button>`).join('')}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" data-act="closeModal">Cancel</button><button class="btn primary" id="rwOk">Confirm</button></div>`);
+    el.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{sel=b.dataset.w;draw()});el.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{hw=b.dataset.h;draw()});
+    el.querySelector('#rwOk').onclick=()=>{closeModal();log('rack',{winner:sel,how:hw})}};
+  draw();
+}
+document.addEventListener('click',e=>{
+  const nb=e.target.closest('#nav button');if(nb){showTab(nb.dataset.tab);return}
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const fn=ACT[b.dataset.act];if(fn){e.preventDefault();fn(b.dataset.arg,b,e)}
+});
+$('#fileVideo').addEventListener('change',e=>{const f=e.target.files[0];if(f)startSession('file',f)});
+$('#filePhoto').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const r=await photoToAvatar(f);if(!r)return;editPhoto=r.url;$('#pAv').innerHTML=avatar({name:'',photo:editPhoto});const hex='#'+r.shirt.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');$('#pShirt').value=hex;$('#pShirtOn').checked=true});
+$('#fileImport').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='poolcam')throw 0;
+  for(const p of d.players||[])if(!players.some(x=>x.id===p.id))players.push(p);for(const s of d.sessions||[]){await saveSession(s);if(!index.some(x=>x.id===s.id))index.push({id:s.id,date:s.date})}
+  index.sort((a,b)=>b.date.localeCompare(a.date));await savePlayers();await saveIndex();toast(`Imported ${(d.sessions||[]).length} sessions`);renderSettings()}catch(err){toast('That isn’t a PoolCam backup')}});
+window.addEventListener('beforeunload',e=>{if(S&&S.mode==='camera'){e.preventDefault();e.returnValue=''}});
+
+/* ---------- boot ---------- */
+(async()=>{await Store.open();await loadAll();initSetup();renderSetup()})();
+</script>
+</body>
+</html>

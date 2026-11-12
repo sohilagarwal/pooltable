@@ -1,3 +1,17 @@
+# PoolCam v5 — scoring, stats, highlights & email
+
+Open **`/v5/`** on GitHub Pages (https://sohilagarwal.github.io/pooltable/v5/) in Safari on the iPad, then Share → Add to Home Screen.
+
+- live recording from the rear camera in 90-second segments; keeps only video around highlights unless "keep full video" is on
+- "Clip that!" saves the last 15 s + next 5 s; auto-clips rack wins, runs of 5+, break & runs, wins on the break
+- shot logging (pot / miss / safety / foul, break results, shot-type tags), turn tracking, ball in hand, undo
+- 8-ball, 9-ball, 10-ball, straight pool; race-to scoring
+- per-player and all-time stats, Elo ratings, head-to-head, shot-type success, insights, momentum chart
+- table calibration + motion-based shot detection and a shirt-colour "who's shooting?" hint
+- email via Mail or the share sheet (HTML report + CSV attached); backup/restore; all data stays on the iPad
+
+The older v4 build below is unchanged at the repo root.
+
 # PoolCam v4.4 camera-isolated
 
 The camera is now bootstrapped by a tiny standalone `camera.js` loaded before the game/vision code. Camera startup does not depend on OpenCV, rules, ball detection, recording, or app initialization. A `camera-test.html` page is included for direct iPad camera verification.
